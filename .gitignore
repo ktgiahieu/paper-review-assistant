@@ -1,0 +1,7 @@
+data/*
+.DS_Store
+experiments/INTRO_compare_review_be4_after/data/*
+.env
+__pycache__/
+exp_data_*
+*.csv

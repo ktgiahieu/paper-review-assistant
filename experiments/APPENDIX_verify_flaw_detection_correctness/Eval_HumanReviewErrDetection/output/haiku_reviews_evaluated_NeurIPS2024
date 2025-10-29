@@ -1,0 +1,90 @@
+[
+  {
+    "openreview_id": "wSqpNeMVLU",
+    "reviewer_id": "GGsr",
+    "evaluation": {
+      "flaw_id": "missing_real_world_batch_experiments",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review explicitly states that 'The experiments are not sufficient. I would like to see improvements in batch speculative sampling in real-world scenarios.'",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review correctly identifies the absence of real-world batch experiments as a flaw, aligning with the ground truth description. The reviewer notes that the core claim about the practical efficiency gains of batch speculative decoding remains unvalidated, and that new real-world experiments are required for publication. This matches the reasoning provided in the ground truth."
+    }
+  },
+  {
+    "openreview_id": "wSqpNeMVLU",
+    "reviewer_id": "qBZ2",
+    "evaluation": {
+      "flaw_id": "missing_real_world_batch_experiments",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention or allude to the absence of real-world batch speculative decoding experiments. There is no discussion of this specific flaw.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "The review does not discuss the core flaw identified in the ground truth, which is the lack of empirical evidence that the proposed batch speculative decoding algorithm works in practical settings. The review focuses on the theoretical contributions and the tradeoffs explored in the paper, but does not address the unvalidated core claim about practical efficiency gains."
+    }
+  },
+  {
+    "openreview_id": "bioHNTRnQk",
+    "reviewer_id": "jLLV",
+    "evaluation": {
+      "flaw_id": "kernel_regression_claim",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review states: 'In addition, the paper multiple times claims to analyse the kernel ridge regression model. However, *none* of the models described are in the kernel regression setting. While it may be an uncomplicated extension, as discussed in Appendix B, the current version of the paper does not perform this extension - and none of the results are presented in this setting. Thus, currently the paper is overselling its contributions.'",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review correctly identifies the flaw that the paper claims to analyze kernel ridge regression, but does not actually provide any such analysis or results. The reviewer accurately points out that this constitutes an over-claim that misrepresents the methodological scope of the paper, as described in the ground truth. The review provides a clear and comprehensive reasoning for why this is a flaw."
+    }
+  },
+  {
+    "openreview_id": "UahrHR5HQh",
+    "reviewer_id": "vH9B",
+    "evaluation": {
+      "flaw_id": "missing_comparison_dirichlet_flow",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review explicitly mentions the lack of comparison with the Dirichlet Flow Matching method, stating: \"The main weakness of the paper is that the core idea of learning the posterior first (i.e., the variational formulation) and evaluating the marginal velocity using the expected conditional velocity w.r.t. the posterior has already been proposed in Dirichlet Flow [1]. Although the author claimed that Dirichlet Flow uses the specific dirichlet distribution as the conditonal probability, this is mainly a design choice which does not affect the generality of Dirichlet Flow for modeling discrete objectives such as graphs and molecules. Given this, the lack of an appropriate comparison to Dirichlet Flow in the experiments represents a significant drawback of the current paper.\"",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review correctly identifies the lack of comparison to Dirichlet Flow as a significant weakness, as the core idea of learning the posterior first and evaluating the marginal velocity has already been proposed in Dirichlet Flow. The review provides a clear and accurate justification for why this omission is problematic, aligning with the ground truth description that the authors acknowledged this critique and stated they would add the requested Dirichlet Flow comparisons."
+    }
+  },
+  {
+    "openreview_id": "FEmag0szWo",
+    "reviewer_id": "xf7T",
+    "evaluation": {
+      "flaw_id": "missing_complexity_analysis",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The reviewer directly mentions the lack of bounds on the size, depth, or training complexity of the required GNNs, as flagged by reviewer xf7T. The reviewer notes this as an important limitation that the authors promised to address.",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The reviewer correctly identified the flaw of missing complexity analysis, as described in the ground truth. They understood the implications of this limitation, namely that even though the MP-tractability can be verified in polynomial time, the necessary MP-GNN may be exponentially large, which could negate the practical usefulness of the result. The reviewer's reasoning aligns well with the ground truth description."
+    }
+  },
+  {
+    "openreview_id": "xNncVKbwwS",
+    "reviewer_id": "VeB9",
+    "evaluation": {
+      "flaw_id": "bounded_domain_gradient_assumption",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review explicitly mentions this flaw, stating: \"Yes, the paper points out in the conclusion that the bounded domain / gradient assumption is a significant limitation that they hope to address in future work.\"",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review correctly identifies the bounded domain and gradient assumption as a significant limitation that the authors acknowledge. This aligns with the ground truth description, which states that this assumption limits the applicability of the core claims in the paper."
+    }
+  },
+  {
+    "openreview_id": "SiALFXa0NN",
+    "reviewer_id": "CSRh",
+    "evaluation": {
+      "flaw_id": "relu_only_implementation",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review mentions the gap between the theoretical contributions (VerSAILLE) which covers a broader class of piecewise Noetherian activations, and the practical tool (N3V/SNNT) which currently only supports ReLU-based neural networks. This is a direct reference to the ground truth flaw description.",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review correctly identifies the flaw and explains its negative implications, aligning with the ground truth description. It notes that the implementation's limited activation coverage remains a critical limitation that must be addressed for the paper's claims of wide applicability to hold."
+    }
+  },
+  {
+    "openreview_id": "SiALFXa0NN",
+    "reviewer_id": "JF4H",
+    "evaluation": {
+      "flaw_id": "relu_only_implementation",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review mentions that the 'practical tool (N3V/SNNT) currently verifies only ReLU-based neural networks, whereas the theoretical framework (VerSAILLE/Mosaic) is claimed to cover much broader classes of piece-wise Noetherian activations.' This directly corresponds to the ground truth description of the flaw.",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review correctly identifies the flaw, which is that the practical implementation of the tool only supports ReLU activations, while the theoretical framework claims to cover a broader class of piece-wise Noetherian activations. The review also notes that this 'remains a critical limitation that must be addressed for the paper's claims of wide applicability to hold', aligning with the ground truth description of the negative implications of this flaw."
+    }
+  }
+]

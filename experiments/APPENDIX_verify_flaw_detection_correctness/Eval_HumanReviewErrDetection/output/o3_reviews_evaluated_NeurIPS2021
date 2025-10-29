@@ -1,0 +1,90 @@
+[
+  {
+    "openreview_id": "wSqpNeMVLU",
+    "reviewer_id": "GGsr",
+    "evaluation": {
+      "flaw_id": "missing_real_world_batch_experiments",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review mentions this flaw in the weaknesses section: 'The experiments are not sufficient. I would like to see improvements in batch speculative sampling in real-world scenarios.'",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "While the review correctly identifies the absence of real-world batch experiments, the reasoning is superficial and lacks the depth described in the ground truth. The ground truth emphasizes that this is a critical gap that leaves the paper's core claims about practical efficiency gains unvalidated, involves acknowledgment from multiple reviewers and program chairs, and represents a fundamental barrier to publication. The review simply states experiments are 'not sufficient' and expresses a desire to see improvements, but fails to articulate why this absence is problematic for validating the paper's central claims or its impact on the work's credibility and practical applicability."
+    }
+  },
+  {
+    "openreview_id": "wSqpNeMVLU",
+    "reviewer_id": "qBZ2",
+    "evaluation": {
+      "flaw_id": "missing_real_world_batch_experiments",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review mentions the lack of empirical validation in the weaknesses section: 'While the theoretical contributions are significant, the paper would benefit from more extensive empirical validation.' Additionally, in the limitations section, it states: 'The results may not guarantee optimality in practical situations because real-world circumstances are more complex and varied than those considered in the theoretical analysis.'",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "While the review does identify the absence of empirical validation, its reasoning is superficial and doesn't align with the ground truth's specific concerns. The ground truth describes a critical gap where the paper's core claim about practical efficiency gains of batch speculative decoding remains unvalidated, with authors acknowledging this limitation is 'impossible' to address currently. The review only provides a generic statement about benefiting from 'more extensive empirical validation' without recognizing the severity of this gap or its impact on the paper's core claims. The review treats this as a minor enhancement rather than understanding it as a fundamental weakness that leaves the main practical claims unproven."
+    }
+  },
+  {
+    "openreview_id": "bioHNTRnQk",
+    "reviewer_id": "jLLV",
+    "evaluation": {
+      "flaw_id": "kernel_regression_claim",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review explicitly mentions this flaw in multiple places: 'In addition, the paper multiple times claims to analyse the kernel ridge regression model. However, *none* of the models described are in the kernel regression setting. While it may be an uncomplicated extension, as discussed in Appendix B, the current version of the paper does not perform this extension - and none of the results are presented in this setting. Thus, currently the paper is overselling its contributions.' and 'line 30 - kernel regression is not analysed in this paper'.",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review's reasoning closely aligns with the ground truth description. The reviewer correctly identifies that: (1) the paper claims to analyze kernel ridge regression multiple times, (2) no such analysis is actually provided in the paper, (3) this constitutes 'overselling its contributions' (matching the ground truth's description of 'over-claim that oversells the contribution'), and (4) mentions that Appendix B offers only a superficial treatment (consistent with the ground truth's reference to 'oversimplified justification'). The reviewer accurately captures both the nature of the flaw (misrepresentation of methodological scope) and its negative impact on the paper's credibility."
+    }
+  },
+  {
+    "openreview_id": "UahrHR5HQh",
+    "reviewer_id": "vH9B",
+    "evaluation": {
+      "flaw_id": "missing_comparison_dirichlet_flow",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review explicitly mentions the missing comparison with Dirichlet Flow in the weaknesses section: 'Given this, the lack of an appropriate comparison to Dirichlet Flow in the experiments represents a significant drawback of the current paper.' The review also discusses how Dirichlet Flow already implements the core idea of learning the posterior first.",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review's reasoning aligns very well with the ground truth. The reviewer correctly identifies that: (1) Dirichlet Flow already implements the core idea of learning the posterior first and then evaluating the marginal velocity using expected conditional velocity, (2) this represents the same fundamental approach as the proposed method, and (3) the lack of experimental comparison is a 'significant drawback.' The reviewer goes beyond just noting the omission by explaining why it's problematic - because Dirichlet Flow already covers the core contribution, making the comparison essential for demonstrating the value of the proposed approach. This matches the ground truth description that this was identified as a 'major weakness' due to the conceptual overlap."
+    }
+  },
+  {
+    "openreview_id": "FEmag0szWo",
+    "reviewer_id": "xf7T",
+    "evaluation": {
+      "flaw_id": "missing_complexity_analysis",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review mentions this flaw in the Questions section: 'On the theoretical side, there is no discussion about the role of m and n in the results. In the current form of the statements, m and n are fixed, so the size of the graph inputs is fixed. Can the authors explain why this is a not a fundamental issue if one is interested in say, training a GNN that predicts SB scores across MILPs of different sizes?' This directly addresses the missing complexity analysis regarding the size bounds of required GNNs.",
+      "is_reasoning_correct": true,
+      "reasoning_analysis": "The review's reasoning correctly identifies why this is a problematic flaw. The reviewer points out that the theoretical results are limited because they fix the problem size (m and n), and questions whether this limitation undermines the practical applicability when trying to train GNNs across MILPs of different sizes. This aligns well with the ground truth description, which notes that the necessary MP-GNN may be exponentially large, potentially negating practical usefulness. While the review doesn't explicitly mention 'exponentially large' GNNs, it correctly identifies that the lack of complexity bounds and size analysis is a fundamental issue for practical applications, which matches the core concern in the ground truth."
+    }
+  },
+  {
+    "openreview_id": "xNncVKbwwS",
+    "reviewer_id": "VeB9",
+    "evaluation": {
+      "flaw_id": "bounded_domain_gradient_assumption",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review explicitly mentions this flaw in the Limitations section: 'Yes, the paper points out in the conclusion that the bounded domain / gradient assumption is a significant limitation that they hope to address in future work.'",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "While the review does mention the bounded domain/gradient assumption as a 'significant limitation,' it provides no reasoning about why this is a flaw or what negative implications it has. The review simply acknowledges that the authors themselves noted it as a limitation to address in future work. The ground truth describes that this assumption restricts the scope and applicability of the paper's core claims, limiting the theoretical guarantees to only losses with bounded gradients over bounded feasible sets. The review fails to explain these scope limitations or analyze how this assumption affects the practical applicability of the methods. It's merely a superficial acknowledgment without any critical analysis of the flaw's impact."
+    }
+  },
+  {
+    "openreview_id": "SiALFXa0NN",
+    "reviewer_id": "CSRh",
+    "evaluation": {
+      "flaw_id": "relu_only_implementation",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review directly mentions this flaw in the Weaknesses section: 'My main concern is the gap between the theoretical contributions and the implementation. As mentioned in lines 71-73, \"the implementation (N3V) supports NNs with Relu\" and \"theoretical contribution (VerSAILLE) reaches far beyond this\". What are the reasons for this gap and what are the difficulties in overcoming it?'",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "While the review correctly identifies the gap between theoretical framework and implementation (VerSAILLE supporting broader activation functions vs N3V only supporting ReLU), it fails to provide the critical reasoning about why this is problematic. The ground truth emphasizes that this gap undermines the paper's claims of 'wide applicability' and represents a 'critical limitation that must be addressed.' The review treats this more as a curious technical question ('What are the reasons for this gap?') rather than recognizing it as a fundamental flaw that contradicts the paper's scope claims. The review lacks the understanding that this limitation significantly restricts the practical impact and contradicts the theoretical promises made in the paper."
+    }
+  },
+  {
+    "openreview_id": "SiALFXa0NN",
+    "reviewer_id": "JF4H",
+    "evaluation": {
+      "flaw_id": "relu_only_implementation",
+      "is_flaw_mentioned": true,
+      "mention_reasoning": "The review mentions this flaw in Question (1): 'However, the method is only applied experimentally to networks with ReLU activation functions, and most related work focuses solely on this single type of network. Have other types of networks been considered, and has the method been tested for effectiveness across different types NNs?'",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "While the review correctly identifies that the implementation is limited to ReLU networks, it fails to capture the critical reasoning outlined in the ground truth. The ground truth emphasizes that this is a significant gap between the broad theoretical claims (covering piece-wise Noetherian activations) and the narrow practical implementation (only ReLU), which undermines the paper's claims of wide applicability. The review treats this as a curious question about whether other networks were considered, rather than identifying it as a fundamental limitation that contradicts the paper's stated scope. The review doesn't mention that this gap was flagged by multiple reviewers, acknowledged by the authors, or that it represents a critical limitation for the paper's claims of broad applicability."
+    }
+  }
+]

@@ -1,0 +1,193 @@
+[
+  {
+    "openreview_id": "lWHe7pmk7C",
+    "reviewer_id": "h6sN",
+    "reason": "reviewer discusses this in rebuttal phase",
+    "evaluation": {
+      "flaw_id": "missing_few_shot_rawnerf_comparison",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the absence of RawNeRF results under few-shot scenarios. While the review mentions some performance comparison issues in weakness 2 ('The performance improvement over baseline with rawnerf loss is marginal and even no synthesis quality improvement compared to the reported scores in the original RawNeRF paper'), this refers to general performance comparisons rather than the specific missing few-shot RawNeRF comparison that is described in the ground truth flaw.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The ground truth describes a critical missing comparison between the proposed method and RawNeRF under the same few-shot conditions, which is essential for validating the method's advantages. The review completely misses this important methodological gap and its implications for the paper's claims about few-shot performance."
+    }
+  },
+  {
+    "openreview_id": "AbZyNGWfpN",
+    "reviewer_id": "CYCL",
+    "reason": "The reviewer QyQ5 discusses this",
+    "evaluation": {
+      "flaw_id": "missing_comparative_evaluation",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the absence of key recent PEFT and sparse-tuning baselines such as GPS, MOSA, VQT, and DoRA. While the review acknowledges that 'SNELL achieves state-of-the-art performance on various benchmarks' and discusses experimental results, it does not critique the experimental section for missing important baseline comparisons or question whether the performance claims are adequately substantiated.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned in the review, there is no reasoning to evaluate. The ground truth describes a critical experimental flaw where multiple reviewers identified missing key baselines that left core performance and memory-efficiency claims unsubstantiated. The generated review fails to identify this gap entirely, instead accepting the experimental results at face value without questioning the completeness of the comparative evaluation. The review does not address the fundamental issue that without proper baseline comparisons, the claimed superiority of SNELL cannot be properly validated."
+    }
+  },
+  {
+    "openreview_id": "bE7GWLQzkM",
+    "reviewer_id": "LdFf",
+    "reason": "The reviewer Uj69 discusses this with the rest of the baselines",
+    "evaluation": {
+      "flaw_id": "unclear_similarity_definition",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention any issues with the definition or consistency of feature similarity (ρ_a) and readout similarity (ρ_b) across different sections of the paper. While the review discusses these concepts in the context of their impact on continual learning, it does not flag any definitional inconsistencies, confusion, or clarity issues with how these key notions are presented in the main text, appendix, and experiments.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned in the review, there is no reasoning to evaluate. The ground truth describes a significant issue where key concepts are defined inconsistently across different parts of the paper, causing confusion that required clarification in the rebuttal and substantive revisions. The generated review completely missed this fundamental clarity and consistency problem, instead treating the similarity definitions as unproblematic and focusing on other aspects like generalizability to more tasks."
+    }
+  },
+  {
+    "openreview_id": "LmjLRHVCMG",
+    "reviewer_id": "4Ck3",
+    "reason": "reviewer discusses this in rebuttal phase",
+    "evaluation": {
+      "flaw_id": "missing_assumption_clarity",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention any issues with missing assumptions, particularly Assumption C.2 regarding the strong-convexity/PL link that underlies Theorem 5.4. While the review mentions in weakness #1 that 'some of the descriptions are not clear enough and difficult to understand,' this is a vague, general statement that does not specifically address the missing assumption or its connection to convergence guarantees. The review does not reference Theorem 5.4, Assumption C.2, or any issues with theoretical assumptions being omitted from the main text.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The ground truth describes a specific technical issue where a critical assumption (C.2) about the strong-convexity/PL link was omitted from the main text, making Theorem 5.4's convergence guarantee hard to interpret. The review completely fails to identify this omission and provides no reasoning about why missing assumptions would impact the interpretability of theoretical results. The reviewer's vague comment about unclear descriptions does not demonstrate understanding of the specific theoretical gap or its implications for the convergence analysis."
+    }
+  },
+  {
+    "openreview_id": "PGOuBHYdbr",
+    "reviewer_id": "yJpu",
+    "evaluation": {
+      "flaw_id": "missing_regime_comparison",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the specific issue of missing concrete ranges of m, T, d where the new polynomial regret bound improves over the exponential term. While the review discusses regret bounds and mentions that the paper 'establishes new regret bounds that improve upon previous results,' it does not identify the absence of specific parameter ranges where the improvement is meaningful or practical.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The review fails to identify that the paper lacks specification of the concrete parameter ranges (m, T, d) where the polynomial regret bound actually provides practical improvement over existing exponential bounds. The ground truth indicates this omission makes it difficult to assess the practical significance of the main claim, but the reviewer did not recognize this critical gap in the analysis."
+    }
+  },
+  {
+    "openreview_id": "qxS4IvtLdD",
+    "reviewer_id": "PpUR",
+    "evaluation": {
+      "flaw_id": "missing_distortion_metrics",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the absence of standard recovery metrics like PSNR and SSIM anywhere in the text. While the review discusses the method's performance and asks for 'more detailed computational comparison' and 'detailed computational results,' it does not specifically identify the missing quantitative evaluation metrics (PSNR/SSIM) that are essential for assessing reconstruction quality in inverse problems like super-resolution and deblurring.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned in the review, there is no reasoning to evaluate. The review fails to identify this critical omission entirely. The ground truth indicates that missing PSNR and SSIM metrics makes it 'difficult to fully assess reconstruction quality' and represents a lack of 'essential quantitative evaluation that is needed for publication.' The reviewer missed this fundamental evaluation gap, which is particularly important for inverse problems like super-resolution where reconstruction quality assessment is crucial."
+    }
+  },
+  {
+    "openreview_id": "DAO2BFzMfy",
+    "reviewer_id": "aBHC",
+    "evaluation": {
+      "flaw_id": "high_compute_cost",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the high computational cost or practical burden of collecting and storing tens of thousands of personalized LoRA weight sets. While the review mentions that the paper 'fine-tuned over 65,000 models' in the summary, it does not identify this as a practical limitation or flaw. The review focuses on methodological concerns and comparisons with existing work, but does not address the preprocessing burden or computational practicality issues.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The review acknowledges that the paper 'discussed the limitations of this work' but does not specifically identify or discuss the high computational cost and practical burden of collecting tens of thousands of personalized LoRA weight sets as a significant limitation. The ground truth describes this as an important practical limitation that affects the method's real-world applicability, but the reviewer did not recognize or address this concern."
+    }
+  },
+  {
+    "openreview_id": "wK0Z49myyi",
+    "reviewer_id": "Bu9t",
+    "evaluation": {
+      "flaw_id": "missing_benchmark_comparison",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the absence of results on real-scene benchmarks like LLFF, nor does it discuss missing comparisons with newer baselines such as BAA-NGP, NeuS2, or NoPe-NeRF. While the review states 'The proposed technique has been evaluated across various standard datasets and against meaningful NeRF-like algorithms' and mentions 'Assessment on a large number of datasets' as a strength, it does not identify the specific gap in benchmark coverage that constitutes the planted flaw.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The review actually presents the experimental evaluation as comprehensive ('Assessment on a large number of datasets' and 'Numerous and conclusive results'), which is contrary to the ground truth description that identifies significant gaps in the experimental scope, particularly the absence of real-scene benchmarks and comparisons with newer baselines."
+    }
+  },
+  {
+    "openreview_id": "gL5nT4y8fn",
+    "reviewer_id": "Chm5",
+    "evaluation": {
+      "flaw_id": "missing_slm_evaluation",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention anything about missing evaluations on smaller language models (Phi-3, MiniCPM, Qwen) or the need to demonstrate practical applicability beyond 7-8B parameter LLMs. While the review discusses scalability concerns and computational costs, it focuses on scaling to 'even larger models' rather than addressing the gap in smaller model evaluations.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned in the review, there is no reasoning to evaluate. The review's discussion of scalability is actually oriented in the opposite direction from the ground truth flaw - it worries about computational costs when scaling up to larger models, while the planted flaw concerns the missing evaluation on smaller, more practical models. The review completely misses the important gap identified by Reviewer Chm5 regarding the need for quantitative results on smaller language models to demonstrate broader practical applicability."
+    }
+  },
+  {
+    "openreview_id": "TxffvJMnBy",
+    "reviewer_id": "MH7f",
+    "evaluation": {
+      "flaw_id": "missing_experimental_baselines",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the lack of experimental baselines, missing comparisons with existing COCO baselines, or the absence of regret/CCV metrics in the empirical evaluation. The review focuses entirely on theoretical contributions, algorithm design, and mathematical bounds without discussing experimental validation or baseline comparisons.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned at all, there is no reasoning to evaluate. The review completely overlooks the critical issue that the empirical section only reports AUC-ROC for the proposed algorithm without any baseline comparisons or proper regret/CCV metrics. This is a significant omission given that the ground truth describes this as a major weakness that prevents demonstrating the claimed practical advantages. The reviewer appears to have focused solely on the theoretical aspects of the work while missing the inadequate experimental validation."
+    }
+  },
+  {
+    "openreview_id": "EiIelh2t7S",
+    "reviewer_id": "3a2j",
+    "evaluation": {
+      "flaw_id": "missing_training_setup",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention any issues with missing training setup details, data selection, or hyper-parameter settings for fine-tuning Llama-2-7B to 32k tokens. While the review mentions 'Experimental Rigor and Reproducibility: It includes extensive experiments to back up the theoretical findings, along with detailed setup and results' in the strengths section, this actually contradicts the planted flaw rather than identifying it.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The review actually praises the paper for having 'detailed setup and results' and good 'reproducibility,' which directly contradicts the ground truth flaw that describes missing training setup information that makes it impossible to verify empirical results. The reviewer completely missed this critical reproducibility issue."
+    }
+  },
+  {
+    "openreview_id": "gVTkMsaaGI",
+    "reviewer_id": "VfXT",
+    "evaluation": {
+      "flaw_id": "overstated_sota_claim",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention anything about overstated claims regarding state-of-the-art results in the abstract or anywhere else in the paper. There is no discussion of RTB's performance claims being exaggerated relative to QGPO and D-QL, nor any mention of needing to soften the language around state-of-the-art achievements.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned at all in the review, there is no reasoning provided about why overstating state-of-the-art claims would be problematic. The ground truth flaw specifically concerns the accuracy of performance claims in the abstract, but the reviewer focused entirely on other aspects like experimental design, baseline comparisons, and methodological concerns without addressing the validity of the state-of-the-art claims made by the authors."
+    }
+  },
+  {
+    "openreview_id": "4kVHI2uXRE",
+    "reviewer_id": "syDC",
+    "evaluation": {
+      "flaw_id": "missing_multi_seed_evaluation",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention anything about random seeds, variance, statistical reliability, or multi-seed evaluation. While the review mentions that 'Additional ablation studies would enhance the persuasiveness of the findings' and asks for more performance evaluation on other datasets, it does not specifically address the critical issue of single-seed evaluation in RL experiments or the need for reporting results across multiple random seeds to establish statistical reliability.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The review fails to identify this critical methodological flaw in RL evaluation. The ground truth emphasizes that multi-seed evaluation is essential for RL studies to measure variance and statistical reliability, and that this was a significant concern raised by reviewers and ACs. The generated review completely misses this important aspect of experimental rigor in reinforcement learning research, focusing instead on general suggestions for additional ablations and dataset evaluation without addressing the fundamental issue of reproducibility and statistical validity of the RL results."
+    }
+  },
+  {
+    "openreview_id": "fTKcqr4xuX",
+    "reviewer_id": "1ugH",
+    "evaluation": {
+      "flaw_id": "unfair_experimental_comparison",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the specific issue of unfair experimental comparison where NI-ERM was evaluated with powerful frozen feature extractors while baselines were not given the same advantage. While the review does mention that 'More baselines should be included' and asks about performance comparisons under various noise levels, it does not identify the fundamental unfairness in the experimental setup regarding feature extractors.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the review does not mention the specific flaw, it cannot provide correct reasoning about it. The ground truth flaw concerns a methodological issue where the proposed method (NI-ERM) had an unfair advantage through access to powerful frozen feature extractors that were not provided to baseline methods, making the comparison invalid. The review's criticism of the experimental section is more general, focusing on the need for more baselines and performance comparisons under different noise levels, but completely misses the core issue of experimental fairness in feature extractor usage."
+    }
+  },
+  {
+    "openreview_id": "JHg9eNuw6p",
+    "reviewer_id": "Te9g",
+    "evaluation": {
+      "flaw_id": "insufficient_embodied_evaluation",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention that the embodied-task demonstration in Section 4.2 was too simple or inadequate to substantiate the paper's claims for robotics/embodied-AI usefulness. While the review mentions embodied AI tasks in positive contexts (e.g., 'friendly for embodied AI tasks', 'important for embodied AI research like object manipulation tasks'), it does not identify insufficient evaluation of embodied tasks as a weakness or flaw.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned, there is no reasoning to evaluate. The review actually suggests the opposite of the ground truth flaw - it views the work positively for embodied AI applications, stating that the generated scenes 'seem reasonable and friendly for embodied AI tasks' and that fine-grained object generation is 'important for embodied AI research like object manipulation tasks'. The review completely misses the critical issue identified in the ground truth: that the embodied evaluation was insufficient and too simple to support the paper's claims about robotics/embodied-AI utility."
+    }
+  },
+  {
+    "openreview_id": "fVRCsK4EoM",
+    "reviewer_id": "Hftn",
+    "evaluation": {
+      "flaw_id": "missing_comparative_experiments",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention the absence of head-to-head comparisons with recent diffusion-RL alignment approaches (Human Preference Score, ImageReward, DPOK, D3PO, diffusion-DPO) or comparisons with strong direct fine-tuning or state-of-the-art inpainting baselines. While the review discusses various technical issues and missing implementation details, it does not address the lack of comparative experimental evaluation against relevant baselines and competing methods.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned in the review, there is no reasoning to evaluate. The ground truth flaw specifically concerns the absence of comparative experiments with recent diffusion-RL alignment approaches and strong inpainting baselines, which would leave the evidence for the paper's claimed superiority incomplete. The generated review focuses on other issues like theoretical justification, implementation details, dataset annotation specifics, and hyperparameter selection, but completely misses this critical evaluation gap that multiple reviewers and the Area Chair identified as problematic."
+    }
+  },
+  {
+    "openreview_id": "kQ9LgM2JQT",
+    "reviewer_id": "eVPz",
+    "evaluation": {
+      "flaw_id": "missing_compute_runtime_reporting",
+      "is_flaw_mentioned": false,
+      "mention_reasoning": "The review does not mention anything about computational overhead, training time, inference time, or runtime comparisons between QGFN and standard GFNs. The review focuses on methodological concerns about variant selection, missing complex environments, and missing related work, but does not address the computational practicality or performance overhead of adding a separate Q network.",
+      "is_reasoning_correct": false,
+      "reasoning_analysis": "Since the flaw was not mentioned in the review, there is no reasoning to evaluate. The ground truth flaw specifically concerns the lack of concrete evidence about training-time overhead and the need for precise training and inference time comparisons to judge the method's real-world practicality. The generated review completely missed this computational efficiency concern and instead focused on other methodological issues like variant selection and evaluation scope."
+    }
+  }
+]
