@@ -3,11 +3,17 @@ import csv
 import ast
 import shutil
 import datetime
+from io import StringIO
+
+from tqdm import tqdm
 
 # --- Configuration ---
 
 # The main CSV file with paper information
 CSV_FILE = 'ICLR2024.csv'
+
+# Flawed papers CSV file with flaw descriptions
+FLAWED_PAPERS_CSV = os.path.join('../../data', 'flawed_papers', 'ICLR2024_latest_flawed_papers_v1', 'flawed_papers_global_summary.csv')
 
 # Base directories for the parsed paper versions
 # Based on your screenshot, the data is in a 'data' folder
@@ -22,6 +28,41 @@ BOUNDARY_DATE = datetime.datetime(2024, 1, 15, 0, 0, 0, tzinfo=datetime.timezone
 END_DATE = datetime.datetime(2025, 6, 25, 0, 0, 0, tzinfo=datetime.timezone.utc)
 
 # --- End Configuration ---
+
+
+def load_flaw_descriptions(flawed_papers_csv_path):
+    """
+    Loads flaw descriptions from the flawed papers CSV and groups them by paper ID.
+    Returns a dictionary mapping paper_id -> list of flaw descriptions.
+    """
+    flaw_dict = {}
+    
+    if not os.path.exists(flawed_papers_csv_path):
+        print(f"Warning: Flawed papers CSV not found at {flawed_papers_csv_path}")
+        return flaw_dict
+    
+    try:
+        # Read file and filter out NUL characters
+        with open(flawed_papers_csv_path, mode='r', encoding='utf-8', errors='ignore') as f:
+            content = f.read().replace('\x00', '')
+        
+        # Parse the cleaned content
+        reader = csv.DictReader(StringIO(content))
+        for row in reader:
+            openreview_id = row.get('openreview_id')
+            flaw_description = row.get('flaw_description')
+            
+            if openreview_id and flaw_description:
+                if openreview_id not in flaw_dict:
+                    flaw_dict[openreview_id] = []
+                flaw_dict[openreview_id].append(flaw_description)
+        
+        # print(f"Loaded flaw descriptions for {len(flaw_dict)} papers")
+    except Exception as e:
+        # print(f"Warning: Could not load flawed papers CSV: {e}")
+        pass
+    
+    return flaw_dict
 
 
 def parse_arxiv_date(date_str):
@@ -76,9 +117,14 @@ def get_latest_version(arxiv_info):
 def main():
     print(f"Starting paper pair processing...")
     print(f"Source CSV: {CSV_FILE}")
+    print(f"Flawed Papers CSV: {FLAWED_PAPERS_CSV}")
     print(f"V1 Directory: {V1_DIR}")
     print(f"Latest Directory: {LATEST_DIR}")
     print(f"Output Directory: {OUTPUT_DIR}\n")
+
+    # Load flaw descriptions
+    flaw_descriptions = load_flaw_descriptions(FLAWED_PAPERS_CSV)
+    print(f"Loaded flaw descriptions for {len(flaw_descriptions)} papers\n")
 
     # Create output directories
     output_v1_dir = os.path.join(OUTPUT_DIR, 'v1')
@@ -95,10 +141,15 @@ def main():
         return
 
     try:
+        # First, count the total number of rows for progress bar
+        with open(CSV_FILE, mode='r', encoding='utf-8') as f:
+            total_rows = sum(1 for line in f) - 1  # Subtract 1 for header
+        
+        # Now process the rows
         with open(CSV_FILE, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
 
-            for row in reader:
+            for row in tqdm(reader, total=total_rows, desc="Processing rows"):
                 processed_count += 1
                 paper_id = row.get('paperid')
                 arxiv_id = row.get('arxiv_id')
@@ -134,9 +185,9 @@ def main():
                 # 3. Apply date filters
                 if (latest_date > BOUNDARY_DATE and latest_date < END_DATE):
                     # This is a valid pair!
-                    print(f"\nFound potential pair for paperid: {paper_id} (Arxiv: {arxiv_id})")
-                    print(f"  v1: {v1_date.date()} (valid)")
-                    print(f"  {latest_key}: {latest_date.date()} (valid)")
+                    # print(f"\nFound potential pair for paperid: {paper_id} (Arxiv: {arxiv_id})")
+                    # print(f"  v1: {v1_date.date()} (valid)")
+                    # print(f"  {latest_key}: {latest_date.date()} (valid)")
 
                     # Construct folder names to search for
                     formatted_arxiv_id = arxiv_id.replace('.', '_')
@@ -148,8 +199,8 @@ def main():
                     source_latest_path = find_paper_folder(LATEST_DIR, latest_folder_name)
 
                     if source_v1_path and source_latest_path:
-                        print(f"  > Found v1 folder: {source_v1_path}")
-                        print(f"  > Found latest folder: {source_latest_path}")
+                        # print(f"  > Found v1 folder: {source_v1_path}")
+                        # print(f"  > Found latest folder: {source_latest_path}")
 
                         # Copy folders to the output directory
                         dest_v1_path = os.path.join(output_v1_dir, v1_folder_name)
@@ -166,17 +217,26 @@ def main():
                             pair_info['v1_folder_path'] = dest_v1_path
                             pair_info['latest_folder_path'] = dest_latest_path
                             pair_info['latest_version_key'] = latest_key
+                            
+                            # Add flaw descriptions as a list
+                            if paper_id in flaw_descriptions:
+                                pair_info['flaw_descriptions'] = flaw_descriptions[paper_id]
+                                # print(f"  > Added {len(flaw_descriptions[paper_id])} flaw description(s)")
+                            else:
+                                pair_info['flaw_descriptions'] = []
+                                # print(f"  > No flaw descriptions found for this paper")
+                            
                             filtered_pairs.append(pair_info)
                             found_count += 1
 
                         except (shutil.Error, OSError) as e:
                             print(f"  ! ERROR copying files for {paper_id}: {e}")
 
-                    else:
-                        if not source_v1_path:
-                            print(f"  ! Warning: Could not find v1 folder: {v1_folder_name}")
-                        if not source_latest_path:
-                            print(f"  ! Warning: Could not find latest folder: {latest_folder_name}")
+                    # else:
+                        # if not source_v1_path:
+                            # print(f"  ! Warning: Could not find v1 folder: {v1_folder_name}")
+                        # if not source_latest_path:
+                            # print(f"  ! Warning: Could not find latest folder: {latest_folder_name}")
 
     except FileNotFoundError:
         print(f"ERROR: Source CSV file not found at {CSV_FILE}")

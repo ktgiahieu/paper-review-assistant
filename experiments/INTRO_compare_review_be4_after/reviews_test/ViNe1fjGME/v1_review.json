@@ -1,0 +1,28 @@
+{
+  "summary": "This paper proposes TGC (Temporal Graph Clustering), a general framework for clustering nodes in temporal graphs by adapting static graph clustering techniques to the interaction sequence-based batch processing pattern of temporal graphs. The framework combines temporal information modeling using methods like HTNE with two clustering modules: node-level distribution and batch-level reconstruction.",
+  "strengths": [
+    "• Addresses an important and understudied problem - temporal graph clustering has received limited attention compared to static graph clustering despite its practical relevance",
+    "• Provides comprehensive analysis of differences between temporal and static graph clustering from multiple perspectives (complexity, data structure, processing patterns)",
+    "• Demonstrates practical advantages in memory efficiency and scalability, showing significant memory reduction compared to static methods that often face OOM issues",
+    "• Framework is general and transferable - experiments show TGC can improve performance when applied to different temporal graph methods (HTNE, TGN, TREND)",
+    "• Contributes new datasets (arXivAI, arXivCS) for temporal graph clustering research"
+  ],
+  "weaknesses": [
+    "• Limited technical novelty - the approach essentially combines existing temporal graph methods with adaptations of standard clustering techniques (Student's t-distribution, cosine similarity reconstruction)",
+    "• Experimental results are mixed - TGC doesn't consistently outperform all baselines across datasets, and improvements are often marginal",
+    "• Dataset limitations acknowledged by authors - many datasets have issues with label quality, binary classification nature, or mismatched characteristics",
+    "• The batch-level reconstruction module is a crude approximation that doesn't fully restore adjacency matrix reconstruction capabilities",
+    "• Writing quality issues including grammatical errors, unclear explanations, and some figures that could be more informative"
+  ],
+  "clarity_score": 6,
+  "novelty_score": 5,
+  "technical_quality_score": 6,
+  "experimental_rigor_score": 7,
+  "overall_score": 6,
+  "confidence": 4,
+  "recommendation": "Weak Accept",
+  "detailed_comments": "While this paper tackles an important and understudied problem in temporal graph analysis, the technical contribution is primarily an engineering adaptation of existing methods rather than a fundamental algorithmic innovation. The experimental evaluation is reasonably comprehensive but shows mixed results with often marginal improvements. The practical advantages in terms of memory efficiency and scalability are valuable, and the general framework approach has merit for the community. However, the limited novelty and inconsistent performance gains prevent this from being a strong contribution.",
+  "paper_id": "ViNe1fjGME",
+  "version": "v1",
+  "success": true
+}

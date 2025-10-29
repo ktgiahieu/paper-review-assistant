@@ -1,0 +1,86 @@
+{
+  "paper_id": "ViNe1fjGME",
+  "v1": {
+    "summary": "This paper proposes TGC (Temporal Graph Clustering), a general framework for clustering nodes in temporal graphs by adapting static graph clustering techniques to the interaction sequence-based batch processing pattern of temporal graphs. The framework combines temporal information modeling using methods like HTNE with two clustering modules: node-level distribution and batch-level reconstruction.",
+    "strengths": [
+      "• Addresses an important and understudied problem - temporal graph clustering has received limited attention compared to static graph clustering despite its practical relevance",
+      "• Provides comprehensive analysis of differences between temporal and static graph clustering from multiple perspectives (complexity, data structure, processing patterns)",
+      "• Demonstrates practical advantages in memory efficiency and scalability, showing significant memory reduction compared to static methods that often face OOM issues",
+      "• Framework is general and transferable - experiments show TGC can improve performance when applied to different temporal graph methods (HTNE, TGN, TREND)",
+      "• Contributes new datasets (arXivAI, arXivCS) for temporal graph clustering research"
+    ],
+    "weaknesses": [
+      "• Limited technical novelty - the approach essentially combines existing temporal graph methods with adaptations of standard clustering techniques (Student's t-distribution, cosine similarity reconstruction)",
+      "• Experimental results are mixed - TGC doesn't consistently outperform all baselines across datasets, and improvements are often marginal",
+      "• Dataset limitations acknowledged by authors - many datasets have issues with label quality, binary classification nature, or mismatched characteristics",
+      "• The batch-level reconstruction module is a crude approximation that doesn't fully restore adjacency matrix reconstruction capabilities",
+      "• Writing quality issues including grammatical errors, unclear explanations, and some figures that could be more informative"
+    ],
+    "clarity_score": 6,
+    "novelty_score": 5,
+    "technical_quality_score": 6,
+    "experimental_rigor_score": 7,
+    "overall_score": 6,
+    "confidence": 4,
+    "recommendation": "Weak Accept",
+    "detailed_comments": "While this paper tackles an important and understudied problem in temporal graph analysis, the technical contribution is primarily an engineering adaptation of existing methods rather than a fundamental algorithmic innovation. The experimental evaluation is reasonably comprehensive but shows mixed results with often marginal improvements. The practical advantages in terms of memory efficiency and scalability are valuable, and the general framework approach has merit for the community. However, the limited novelty and inconsistent performance gains prevent this from being a strong contribution.",
+    "paper_id": "ViNe1fjGME",
+    "version": "v1",
+    "success": true
+  },
+  "latest": {
+    "summary": "This paper proposes TGC, a general framework for deep temporal graph clustering that adapts clustering techniques to interaction sequence-based batch processing patterns. The framework introduces two clustering modules (node-level distribution and batch-level reconstruction) to suit temporal graphs, contrasting them with static graph clustering approaches.",
+    "strengths": [
+      "Addresses an underexplored but important problem of temporal graph clustering with a novel batch-processing approach that naturally handles large-scale graphs",
+      "Provides comprehensive analysis of differences between temporal and static graph clustering from multiple perspectives (complexity, data representation, processing patterns)",
+      "Demonstrates memory efficiency advantages over static methods, with extensive GPU memory usage experiments showing significant improvements",
+      "Shows transferability across different temporal graph learning methods (HTNE, TGN, TREND) with consistent improvements",
+      "Contributes new datasets (arXivAI, arXivCS) and addresses the dataset scarcity issue in temporal graph clustering"
+    ],
+    "weaknesses": [
+      "The clustering modules are relatively simple adaptations - node-level distribution uses standard t-distribution similarity and batch-level reconstruction is a basic cosine similarity constraint",
+      "Performance improvements are often marginal compared to baselines, and the method doesn't consistently outperform across all datasets and metrics",
+      "The temporal modeling relies entirely on existing HTNE method without novel temporal modeling contributions",
+      "Some experimental comparisons are unfair - many static methods face OOM issues while temporal methods naturally avoid this through batch processing",
+      "The theoretical analysis of complexity advantages could be more rigorous - the claim that O(|E|) < O(N²) depends heavily on graph sparsity assumptions"
+    ],
+    "clarity_score": 8,
+    "novelty_score": 6,
+    "technical_quality_score": 6,
+    "experimental_rigor_score": 7,
+    "overall_score": 6,
+    "confidence": 4,
+    "recommendation": "Weak Accept",
+    "detailed_comments": "The paper tackles an important and understudied problem with a reasonable approach. The key insight about batch processing enabling better memory efficiency is valuable. However, the technical contributions are somewhat incremental - the clustering modules are straightforward adaptations of existing techniques. While the experimental evaluation is comprehensive, the performance gains are often modest. The work would benefit from more sophisticated clustering modules and stronger theoretical foundations for the complexity claims.",
+    "paper_id": "ViNe1fjGME",
+    "version": "latest",
+    "success": true
+  },
+  "score_changes": {
+    "clarity_score": {
+      "v1": 6,
+      "latest": 8,
+      "change": 2
+    },
+    "novelty_score": {
+      "v1": 5,
+      "latest": 6,
+      "change": 1
+    },
+    "technical_quality_score": {
+      "v1": 6,
+      "latest": 6,
+      "change": 0
+    },
+    "experimental_rigor_score": {
+      "v1": 7,
+      "latest": 7,
+      "change": 0
+    },
+    "overall_score": {
+      "v1": 6,
+      "latest": 6,
+      "change": 0
+    }
+  }
+}
