@@ -12,9 +12,12 @@ However, you requested 39511 tokens (35415 in messages, 4096 in completion).
 
 ## Solution Implemented
 
-✅ **Automatic context management** with intelligent truncation  
+✅ **Automatic context management** with intelligent 3-stage truncation  
 ✅ **Model-specific limits** (SEA-E: 32K, Default: 128K)  
-✅ **Smart truncation** preserving key sections (70% start, 30% end)  
+✅ **Smart truncation strategy:**
+   1. Remove reference abstracts (preserves citations)
+   2. Remove appendices (preserves core paper)
+   3. Beginning/end truncation as last resort (70% start, 30% end)  
 ✅ **Transparent tracking** via `was_truncated` flag  
 ✅ **Zero configuration required** - works automatically
 
@@ -35,12 +38,25 @@ CHARS_PER_TOKEN = 4       # Estimation ratio
 
 **`_estimate_tokens(text: str) -> int`**
 - Estimates token count from character count
-- Conservative approximation: 4 chars per token
+- Conservative approximation: 4.5 chars per token
+
+**`_remove_reference_abstracts(paper_content: str) -> (str, bool)`**
+- Removes `**Abstract:**` sections from references
+- Preserves citations and reference structure
+- Returns (content_without_abstracts, abstracts_were_removed)
+
+**`_remove_appendices(paper_content: str) -> (str, bool)`**
+- Removes all sections after References (appendices)
+- Identifies appendix sections by detecting `# Heading` patterns after References
+- Returns (content_without_appendices, appendices_were_removed)
 
 **`_truncate_paper_content(...) -> (str, bool)`**
-- Truncates paper to fit token limit
-- Preserves 70% from beginning, 30% from end
-- Inserts truncation notice
+- **3-stage smart truncation strategy:**
+  1. Try removing reference abstracts first
+  2. If still too long, remove appendices
+  3. If still too long, apply beginning/end truncation (70% start, 30% end)
+- Each stage only proceeds if previous stage was insufficient
+- Inserts appropriate truncation notices at each stage
 - Returns (truncated_text, was_truncated)
 
 ### 3. Integration
@@ -83,33 +99,48 @@ Available for paper: 32,768 - 10,146 = 22,622 tokens
 
 ### Truncation Strategy
 
-If paper exceeds available tokens:
+**3-stage intelligent truncation** (only proceeds to next stage if needed):
 
-**Before truncation:**
+#### Stage 1: Remove Reference Abstracts
 ```
-[Full paper: 35,000 tokens, 140,000 chars]
+[Full paper: 35,000 tokens]
+↓ Remove abstracts from references
+[Paper without reference abstracts: ~32,000 tokens]
 ```
+If ≤ target → Done! ✓
 
-**After truncation (target: 22,622 tokens):**
+#### Stage 2: Remove Appendices
 ```
+[Paper: still 32,000 tokens]
+↓ Remove appendices (sections after References)
+[Paper without appendices: ~26,000 tokens]
+```
+If ≤ target → Done! ✓
+
+#### Stage 3: Beginning/End Truncation (Last Resort)
+```
+[Paper: still 26,000 tokens, target: 22,622 tokens]
+↓ Apply 70/30 truncation
 [Beginning: 70% = ~15,820 tokens]
-[... CONTENT TRUNCATED DUE TO LENGTH LIMITS ...]
+[... MAIN CONTENT TRUNCATED DUE TO LENGTH LIMITS ...]
 [End: 30% = ~6,760 tokens]
+[Final: ~22,600 tokens]
 ```
 
-**Preserves:**
-- ✅ Abstract
-- ✅ Introduction
-- ✅ Problem statement
-- ✅ Main contributions
-- ✅ Results
-- ✅ Conclusions
-- ✅ Future work
+**Typical outcome (most papers):**
+- ✅ Abstract, Intro, Methods, Results, Conclusion (complete)
+- ✅ Reference citations (without abstracts)
+- ❌ Reference abstracts
+- ❌ Appendices (theoretical proofs, additional experiments)
 
-**May lose:**
-- ⚠️ Middle of methodology section
-- ⚠️ Some experimental details
-- ⚠️ Some related work
+**Worst case (very long papers needing Stage 3):**
+- ✅ Abstract, Intro, Methods
+- ✅ Most Results
+- ✅ Conclusions
+- ✅ Reference citations (without abstracts)
+- ❌ Reference abstracts
+- ❌ Appendices
+- ⚠️ Some middle content (least critical sections)
 
 ## Usage
 
@@ -127,9 +158,23 @@ python review_paper_pairs_vllm.py \
   --verbose
 ```
 
-**Verbose output shows truncation:**
+**Verbose output shows truncation stages:**
 ```
-Worker 12345: Truncated paper from 35000 to ~22600 tokens (140000 → 90400 chars)
+Worker 12345: Paper exceeds limit (35000 > 22622 tokens). Removing reference abstracts...
+Worker 12345: After removing reference abstracts: 32000 tokens
+Worker 12345: Still over limit (32000 tokens). Removing appendices...
+Worker 12345: After removing appendices: 26000 tokens
+Worker 12345: Still over limit (26000 tokens). Applying beginning/end truncation...
+Worker 12345: Final truncation: 35000 → 22600 tokens (140000 → 101790 chars)
+Worker 12345: Reviewing paper123 (v1, run 0), attempt 1/3
+✓ Successfully reviewed paper123 (v1, run 0)
+```
+
+**Or, if only Stage 1 needed:**
+```
+Worker 12345: Paper exceeds limit (28000 > 22622 tokens). Removing reference abstracts...
+Worker 12345: After removing reference abstracts: 21500 tokens
+Worker 12345: Successfully fit within limit by removing reference abstracts
 Worker 12345: Reviewing paper123 (v1, run 0), attempt 1/3
 ✓ Successfully reviewed paper123 (v1, run 0)
 ```

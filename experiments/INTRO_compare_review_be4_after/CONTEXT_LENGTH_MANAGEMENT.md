@@ -77,31 +77,66 @@ Available for paper = 32,768 - 4,096 - 6,050 = 22,622 tokens
 
 ### 3. Truncate Paper Content
 
-If paper exceeds available tokens, it's truncated intelligently:
+If paper exceeds available tokens, a **three-stage smart truncation strategy** is applied:
 
-**Preserve Ratio:** 70% from beginning, 30% from end (configurable)
+#### Stage 1: Remove Reference Abstracts
+- Removes all `**Abstract:**` sections from the References
+- Preserves reference citations but removes lengthy abstracts
+- **Impact:** Can save ~20-40% of reference section size
+
+#### Stage 2: Remove Appendices
+- Removes all content after the References section
+- Typically includes: Theoretical Analysis, Additional Experiments, Proofs
+- Adds notice: `[... APPENDICES REMOVED DUE TO LENGTH LIMITS ...]`
+- **Impact:** Can save significant space for papers with extensive appendices
+
+#### Stage 3: Beginning/End Truncation (Last Resort)
+- **Only used if stages 1 & 2 are insufficient**
+- **Preserve Ratio:** 70% from beginning, 30% from end (configurable)
+- Preserves most important content:
+  - **Beginning**: Abstract, intro, problem statement, main contributions, methods
+  - **End**: Results, conclusions, future work
+- Adds notice: `[... MAIN CONTENT TRUNCATED DUE TO LENGTH LIMITS ...]`
 
 **Why this strategy?**
-- **Beginning**: Abstract, intro, problem statement, main contributions
-- **End**: Conclusions, future work, key results
-
-**Truncation Notice:**
-```
-[... CONTENT TRUNCATED DUE TO LENGTH LIMITS ...]
-```
-
-This notice is inserted between the beginning and end portions.
+1. **Reference abstracts** are rarely needed for review (citations are sufficient)
+2. **Appendices** contain supplementary material, not core contributions
+3. **Core paper content** is preserved as much as possible
+4. **Reviewers get** abstract, intro, methods, results, and conclusions intact
 
 ## Example
 
 **Original paper:** 40,000 tokens  
-**Available:** 22,622 tokens  
-**Truncated to:** ~22,600 tokens
+**Available:** 22,622 tokens
+
+**Stage 1 - Remove Reference Abstracts:**
+- Original references: ~8,000 tokens
+- After removing abstracts: ~5,000 tokens
+- **Saved:** 3,000 tokens
+- **New total:** 37,000 tokens → Still over limit
+
+**Stage 2 - Remove Appendices:**
+- Original appendices: ~12,000 tokens
+- After removal: 0 tokens (notice added)
+- **Saved:** 12,000 tokens
+- **New total:** 25,000 tokens → Still over limit
+
+**Stage 3 - Beginning/End Truncation:**
+- Target: 22,622 tokens
+- **First 70%**: ~15,820 tokens (Abstract → Methods → Results)
+- **Notice**: ~20 tokens
+- **Last 30%**: ~6,780 tokens (Conclusion section)
+- **Final total:** ~22,620 tokens ✓
 
 **Content preserved:**
-- **First 70%**: ~15,820 tokens (Abstract through Methods)
-- **Notice**: ~20 tokens
-- **Last 30%**: ~6,760 tokens (Results through Conclusion)
+- ✅ Abstract
+- ✅ Introduction & Background
+- ✅ Methodology (complete)
+- ✅ Most Results
+- ✅ Conclusions
+- ✅ Reference citations (without abstracts)
+- ❌ Reference abstracts
+- ❌ Appendices (theoretical proofs, additional experiments)
 
 ## Output Format
 

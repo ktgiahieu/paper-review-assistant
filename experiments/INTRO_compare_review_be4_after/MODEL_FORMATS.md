@@ -6,6 +6,47 @@ The `review_paper_pairs_vllm.py` script now supports multiple model formats with
 
 ## Supported Models
 
+Currently supported: **3 specialized formats** + 1 default JSON format
+
+1. **SEA-E** - Single academic review with structured markdown sections
+2. **CycleReviewer** - Multi-reviewer format with meta review (4 reviewers + meta)
+3. **GenericStructured** - JSON format with explicit instructions (for non-finetuned models)
+4. **Default** - Generic JSON format for other models
+
+## Format Override
+
+You can override automatic model detection using the `--format` option:
+
+```bash
+# Force GenericStructured format for any model
+python review_paper_pairs_vllm.py \
+  --model_name "meta-llama/Llama-3.1-70B-Instruct" \
+  --format GenericStructured \
+  --vllm_endpoint "http://localhost:8000" \
+  ...
+
+# Force SEA-E format even if model name doesn't match
+python review_paper_pairs_vllm.py \
+  --model_name "my-custom-model" \
+  --format SEA-E \
+  --vllm_endpoint "http://localhost:8000" \
+  ...
+
+# Force CycleReviewer format
+python review_paper_pairs_vllm.py \
+  --model_name "my-custom-model" \
+  --format CycleReviewer \
+  --vllm_endpoint "http://localhost:8000" \
+  ...
+```
+
+**Available Options:**
+- `--format SEA-E`: Use SEA-E markdown format
+- `--format CycleReviewer`: Use CycleReviewer multi-reviewer format
+- `--format GenericStructured`: Use GenericStructured JSON format (recommended for base models)
+- `--format default`: Use default JSON format
+- No `--format` flag: Auto-detect based on model name
+
 ### 1. SEA-E Format
 
 **Model Detection:** Model names containing `"sea-e"` or `"seae"` (case-insensitive)
@@ -92,7 +133,238 @@ The SEA-E model uses a structured academic review prompt with 9 sections:
 }
 ```
 
-### 2. Default (JSON) Format
+### 2. CycleReviewer Format
+
+**Model Detection:** Model names containing `"cyclereviewer"`, `"cycle-reviewer"`, or `"cycle_reviewer"` (case-insensitive)
+
+**Output Format:** Markdown with multiple reviewers and meta review
+
+**Example Usage:**
+```bash
+python review_paper_pairs_vllm.py \
+  --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
+  --output_dir "./reviews_cycle" \
+  --vllm_endpoint "http://localhost:8000" \
+  --model_name "CycleReviewer-Llama-3.1-70B" \
+  --limit 1 \
+  --verbose
+```
+
+**Prompt Structure:**
+
+The CycleReviewer model simulates a multi-reviewer conference review process with:
+- 4 individual reviewer opinions
+- Each reviewer provides: Summary, Soundness, Presentation, Contribution, Strengths, Weaknesses, Questions, Ethics Flag, Rating, Confidence
+- Meta Review section with overall assessment
+- Justifications for score decisions
+- Final paper decision
+
+**Output Format:**
+
+```markdown
+## Reviewer
+
+### Summary
+[Reviewer 1 summary]
+
+### Soundness
+[Rating with description]
+
+### Presentation
+[Rating with description]
+
+### Contribution
+[Rating with description]
+
+### Strengths
+1. Strength point 1
+2. Strength point 2
+
+### Weaknesses
+1. Weakness point 1
+2. Weakness point 2
+
+### Questions
+1. Question 1
+2. Question 2
+
+### Flag For Ethics Review
+[Ethics review status]
+
+### Rating
+[1-10 rating with justification]
+
+### Confidence
+[Confidence level description]
+
+**********
+
+## Reviewer
+[Reviewer 2... same structure]
+
+**********
+
+## Reviewer
+[Reviewer 3... same structure]
+
+**********
+
+## Reviewer
+[Reviewer 4... same structure]
+
+**********
+
+## Meta Review
+[Overall assessment paragraph]
+
+### justification_for_why_not_higher_score
+[Explanation]
+
+### justification_for_why_not_lower_score
+[Explanation]
+
+**********
+
+## Paper Decision
+Accept/Reject
+```
+
+**Parsed JSON Structure:**
+
+```json
+{
+  "reviewers": [
+    {
+      "summary": "string",
+      "soundness": "string",
+      "presentation": "string",
+      "contribution": "string",
+      "strengths": ["string", ...],
+      "weaknesses": ["string", ...],
+      "questions": ["string", ...],
+      "flag_for_ethics_review": "string",
+      "rating": "string",
+      "confidence": "string"
+    },
+    // ... 3 more reviewers
+  ],
+  "meta_review": "string",
+  "justification_for_why_not_higher_score": "string",
+  "justification_for_why_not_lower_score": "string",
+  "paper_decision": "string",
+  "paper_id": "string",
+  "version": "string",
+  "run_id": 0,
+  "model_type": "CycleReviewer",
+  "success": true,
+  "raw_content": "string",
+  "was_truncated": false,
+  "chars_per_token_used": 3.0
+}
+```
+
+### 3. GenericStructured Format
+
+**Model Detection:** Manual override with `--format GenericStructured`
+
+**Purpose:** For non-finetuned models that need explicit JSON formatting instructions
+
+**Output Format:** JSON with detailed structure
+
+**Example Usage:**
+```bash
+python review_paper_pairs_vllm.py \
+  --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
+  --output_dir "./reviews_generic" \
+  --vllm_endpoint "http://localhost:8000" \
+  --model_name "meta-llama/Llama-3.1-70B-Instruct" \
+  --format GenericStructured \
+  --num_runs 3 \
+  --max_figures 5 \
+  --verbose
+```
+
+**Prompt Structure:**
+
+The GenericStructured prompt is designed for base/non-finetuned models and includes:
+- Very explicit instructions about what to include
+- Detailed JSON schema with examples
+- Clear formatting rules (no markdown, no code blocks)
+- Example of correct output format
+- Field-by-field format specifications
+
+**Key Features:**
+- **Extremely Detailed Instructions**: Every field explained with format requirements
+- **JSON Schema Example**: Shows exact structure expected
+- **Format Enforcement**: Multiple reminders to output ONLY JSON
+- **Compatible Fields**: Uses same fields as SEA-E for easy comparison
+
+**Output Format:**
+
+```json
+{
+  "summary": "string",
+  "soundness": "string (1-4: poor/fair/good/excellent)",
+  "presentation": "string (1-4: poor/fair/good/excellent)",
+  "contribution": "string (1-4: poor/fair/good/excellent)",
+  "strengths": ["string", "string", "string"],
+  "weaknesses": ["string", "string", "string"],
+  "questions": ["string", "string", "string"],
+  "rating": "string (1-10 with description)",
+  "recommendation": "string (Accept/Reject)",
+  "meta_review": "string (comprehensive assessment)"
+}
+```
+
+**Parsed JSON Structure:**
+
+```json
+{
+  "summary": "This paper proposes...",
+  "soundness": "3 good",
+  "presentation": "2 fair",
+  "contribution": "3 good",
+  "strengths": [
+    "Novel approach to problem X",
+    "Comprehensive experiments",
+    "Clear technical exposition"
+  ],
+  "weaknesses": [
+    "Limited comparison with baseline Y",
+    "No ablation study for component Z",
+    "Computational cost not discussed"
+  ],
+  "questions": [
+    "How does this scale to larger datasets?",
+    "What is the inference time?",
+    "Can this be applied to domain X?"
+  ],
+  "rating": "6: marginally above the acceptance threshold",
+  "recommendation": "Accept",
+  "meta_review": "This paper presents a solid contribution with good experimental results. The main strengths are the novel approach and comprehensive evaluation. However, some comparisons with recent work are missing. Overall, the contributions outweigh the limitations.",
+  "paper_id": "string",
+  "version": "string",
+  "run_id": 0,
+  "model_type": "GenericStructured",
+  "success": true,
+  "was_truncated": false,
+  "chars_per_token_used": 3.0
+}
+```
+
+**When to Use:**
+- Base models (Llama, Mistral, etc.) without fine-tuning
+- Models that don't follow instructions well
+- When you need maximum format compliance
+- When comparing with SEA-E results (compatible fields)
+
+**Comparison with SEA-E:**
+- Same core fields: summary, soundness, presentation, contribution, strengths, weaknesses, questions, rating
+- GenericStructured adds: `recommendation` (explicit Accept/Reject) and `meta_review` (detailed assessment)
+- GenericStructured uses JSON instead of Markdown (better for parsing)
+- More explicit instructions to compensate for lack of fine-tuning
+
+### 4. Default (JSON) Format
 
 **Model Detection:** All models not matching specific patterns
 
@@ -156,6 +428,8 @@ def detect_model_type(model_name: str) -> str:
     # Existing checks...
     if "sea-e" in model_name_lower or "seae" in model_name_lower:
         return "SEA-E"
+    elif "cyclereviewer" in model_name_lower or "cycle-reviewer" in model_name_lower:
+        return "CycleReviewer"
     
     # Add your new model check
     if "your-model-keyword" in model_name_lower:
