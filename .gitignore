@@ -6,3 +6,4 @@ __pycache__/
 exp_data_*
 *.csv
 reviews_test/*
+experiments/INTRO_compare_review_be4_after/output/*

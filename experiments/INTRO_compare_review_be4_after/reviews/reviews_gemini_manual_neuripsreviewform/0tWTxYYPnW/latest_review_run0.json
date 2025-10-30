@@ -1,0 +1,37 @@
+{
+  "summary": "This paper investigates the impact of 'hidden context'—unobserved variables like annotator identity or multiple objectives—on preference learning in RLHF. It theoretically proves that standard preference learning, when trained on data aggregated over such contexts, implicitly optimizes for a Borda count ranking, not expected utility. This leads to issues like strategic manipulation. The authors propose Distributional Preference Learning (DPL) to model this contextual variance, demonstrating experimentally that DPL can detect hidden objectives in the HH-RLHF dataset and, when combined with risk-aversion, reduce jailbreak vulnerabilities.",
+  "strengths": [
+    "The connection drawn between standard BTL-based preference learning and the Borda count voting rule is a clear and insightful theoretical contribution.",
+    "Framing the problem through the lens of social choice theory provides a strong conceptual basis for understanding issues like strategic misreporting in RLHF.",
+    "The proposed Distributional Preference Learning (DPL) method is an intuitive and sensible approach to modeling the variance introduced by hidden context, distinguishing it from epistemic uncertainty.",
+    "The case study on the HH-RLHF dataset provides compelling empirical evidence that hidden objectives (helpfulness vs. harmlessness) are a real problem and that DPL with risk-aversion is a promising mitigation.",
+    "The paper clearly articulates the problematic divergence between Borda count (what standard PL *does*) and expected utility (what designers might *want*)."
+  ],
+  "weaknesses": [
+    "The paper's core theoretical claim is built on a confusing and contradictory definition of 'hidden context'.",
+    "Specifically, the paper claims standard noise models (like Thurstone's) are a type of hidden context, yet the central Borda count theorem (Thm 3.1) only holds under a different data-generating process (Eq 3) that *excludes* these models.",
+    "The analysis in Theorem 3.2 (the 'Positive result') *contradicts* the main thesis by showing that when hidden context *is* modeled as i.i.d. noise (the standard assumption), preference learning *does* recover the expected utility, not Borda count.",
+    "The theoretical results in the appendix contain significant errors, undermining their validity. For example, the proof of Proposition 9 (mislabeled) uses a counter-example that fails to preserve the pairwise comparison proportions, and other proofs (e.g., Prop 8) contain undefined notation.",
+    "The paper overstates its central claim: standard PL *only* implements Borda count under the paper's specific (and non-standard) model of context-dependent deterministic utility, not for preference learning in general."
+  ],
+  "questions": [
+    "Could the authors please clarify the central data-generating model? Is the BTL model (Eq 1) just the loss function, while the *true* data-generating process is the deterministic comparison (Eq 3)?",
+    "How does this reconcile with claiming that i.i.d. noise models (like Thurstone's) are *also* hidden context, when they *do* lead to recovering expected utility (per Thm 3.2)?",
+    "The proof of Proposition 9 in the appendix appears to be incorrect, as the transformation used does not preserve the pairwise comparison proportions ($`\\rho`$). Can the authors provide a corrected proof or withdraw this claim?",
+    "How would the paper's analysis change if the data-generating process assumed *both* hidden context $`z`$ and BTL noise? E.g., $`p(a \\succ b) = \\mathbb{E}_z [ \\sigma(u(a,z) - u(b,z)) ]`$. Would standard PL still optimize for Borda count?",
+    "The DPL method seems closely related to mixture density networks or quantile regression. Could you situate DPL more formally with respect to this existing literature on learning predictive distributions?"
+  ],
+  "limitations_and_societal_impact": "The paper does a good job discussing the societal impact of its findings, particularly in Example 1 (Pell Grants) and the jailbreak case study. This connection is a strength. The limitations are not consolidated, but are implied (e.g., the theoretical reliance on the Eq 3 model). A dedicated limitations section should explicitly state the assumptions of the theoretical model (e.g., deterministic utility given context) and discuss the computational overhead of DPL, especially for the categorical variant.",
+  "soundness": 2,
+  "presentation": 3,
+  "contribution": 3,
+  "overall_score": 5,
+  "confidence": 5,
+  "rating": 5,
+  "paper_id": "0tWTxYYPnW",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

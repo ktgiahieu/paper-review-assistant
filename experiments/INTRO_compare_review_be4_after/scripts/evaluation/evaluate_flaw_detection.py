@@ -107,6 +107,18 @@ def load_ai_review(reviews_dir: Path, paper_id: str, version: str, run_id: int =
     
     return None
 
+def has_complete_runs(reviews_dir: Path, paper_id: str, num_runs: int = 3) -> bool:
+    """Check that paper has both v1 and latest for runs 0..num_runs-1."""
+    paper_dir = reviews_dir / paper_id
+    if not paper_dir.exists():
+        return False
+    for version in ['v1', 'latest']:
+        for run in range(num_runs):
+            f = paper_dir / f"{version}_review_run{run}.json"
+            if not f.exists():
+                return False
+    return True
+
 def extract_weaknesses(review_data: Dict) -> str:
     """
     Extract the weaknesses section from a review.
@@ -372,6 +384,12 @@ def main():
         help="Limit to first N papers (for testing)"
     )
     parser.add_argument(
+        "--num_runs",
+        type=int,
+        default=3,
+        help="Required number of runs per version (default: 3). Papers without full runs are skipped."
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print detailed progress"
@@ -432,6 +450,11 @@ def main():
         
         if not flaws:
             continue
+        # Skip papers without complete runs
+        if not has_complete_runs(reviews_dir, paper_id, num_runs=args.num_runs):
+            if args.verbose:
+                print(f"Skipping {paper_id}: incomplete runs")
+            continue
         
         if args.verbose:
             print(f"\n{'='*80}")
@@ -439,13 +462,11 @@ def main():
             print(f"Number of ground truth flaws: {len(flaws)}")
         
         for version in versions:
-            # Load all runs for this version
-            run_id = 0
-            while True:
+            # Load fixed run ids 0..num_runs-1 only
+            for run_id in range(args.num_runs):
                 review_data = load_ai_review(reviews_dir, paper_id, version, run_id)
-                
                 if review_data is None:
-                    break
+                    continue
                 
                 if args.verbose:
                     print(f"\n  Evaluating {version} review (run {run_id})...")

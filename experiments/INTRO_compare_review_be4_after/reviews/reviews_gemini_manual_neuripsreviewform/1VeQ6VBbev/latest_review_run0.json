@@ -1,0 +1,37 @@
+{
+  "summary": "This paper analyzes policy gradient (PG) methods for finite-horizon Markov Decision Processes (MDPs), where optimal policies are non-stationary. It introduces a 'dynamic policy gradient' (DPG) algorithm that trains policy parameters backwards in time, leveraging the dynamic programming structure of the problem. The authors provide convergence analyses for both DPG and the standard 'simultaneous' PG (where all parameters are trained at once) using a tabular softmax parameterization. The analysis covers both exact (deterministic) and stochastic (sampled) gradients, showing that DPG achieves theoretically superior convergence rates in terms of the horizon H.",
+  "strengths": [
+    "The proposed 'dynamic policy gradient' (DPG) algorithm is elegant and intuitively appealing, as it directly embeds the dynamic programming principle within a policy gradient framework.",
+    "The paper provides a clear theoretical advantage for DPG, demonstrating an improved convergence complexity ($H^3$ vs. $H^5$ in the exact case) compared to the standard simultaneous approach.",
+    "A significant finding is that DPG, under uniform initialization, yields a computable, problem-independent lower bound ($c_h = 1/|\\mathcal{A}|$) for the gradient domination term, a property not established for the simultaneous method.",
+    "The stochastic analysis for the unregularized softmax PG case is a novel contribution. The use of a stopping time relative to the deterministic trajectory, rather than a fixed optimal parameter, is a sound technique to handle the diverging nature of unregularized parameters.",
+    "The included toy example (Figure 1), while simple, effectively visualizes the practical convergence advantage of DPG over simultaneous training, corroborating the theoretical findings."
+  ],
+  "weaknesses": [
+    "The paper's primary weakness is its positioning and the articulation of its theoretical novelty, particularly regarding the 'simultaneous' PG baseline.",
+    "The analysis of the simultaneous algorithm appears to be a straightforward adaptation of infinite-horizon PG analysis (e.g., Agarwal et al., 2021), where the horizon $H$ replaces the effective horizon $1/(1-\\gamma)$. The paper fails to articulate what specific technical challenges, if any, this adaptation presented, making the $H^5$ result seem unsurprising.",
+    "While the stochastic analysis is novel, its core technical challenge—designing a stopping time independent of a fixed optimal parameter $\\theta^*$—is not sufficiently highlighted in the introduction. This key difficulty is only mentioned in passing in Section 4.",
+    "The analysis for the simultaneous case relies on a strong, and somewhat restrictive, assumption (Assumption 2: $\\mathcal{S}_h = \\mathcal{S}$) to bound the distribution mismatch. The implications of this assumption are not fully explored.",
+    "The complexity bounds for the stochastic case are acknowledged by the authors as 'far from tight' ($H^7$ and $H^{10}$), which, while theoretically valuable, limits the paper's immediate practical implications."
+  ],
+  "questions": [
+    "To address the perceived lack of novelty in the simultaneous analysis: could you explicitly dedicate a subsection to detailing the *specific technical hurdles* encountered when translating infinite-horizon analysis (e.g., Agarwal et al. 2021) to the finite-horizon, enlarged-state-space setting? What breaks or requires non-trivial modification?",
+    "Is the $H^5$ bound for simultaneous PG fundamental, or is it an artifact of the specific analysis technique (e.g., the way the distribution mismatch is bounded via Assumption 2)? Could a different analysis yield a tighter bound?",
+    "The core technical contribution of the stochastic analysis is the novel stopping time. Please elevate this contribution by discussing it in the Introduction, clearly contrasting it with prior work (like Ding et al. 2022) that relies on regularization for a fixed $\\theta^*$.",
+    "How critical is Assumption 2 for the simultaneous PG analysis? Could this be relaxed, for instance, by assuming a 'concentrability' coefficient that may depend on $H$, rather than a uniform state space?",
+    "The conclusion points to neural networks. Could the authors elaborate on the *specific challenges* they foresee in that extension? For DPG, would one train $H$ separate networks backwards, or a single recurrent network with a backward-in-time training scheme?"
+  ],
+  "limitations_and_societal_impact": "The authors candidly address the limitations of their work, primarily its restriction to the tabular softmax case and the loose, impractical bounds in the stochastic setting. They appropriately position this as a foundational theoretical step. The paper does not address broader societal impacts, which is acceptable for a work of this highly theoretical nature. No negative societal impacts are immediately apparent.",
+  "soundness": 4,
+  "presentation": 3,
+  "contribution": 3,
+  "overall_score": 6,
+  "confidence": 5,
+  "rating": 6,
+  "paper_id": "1VeQ6VBbev",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

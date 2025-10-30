@@ -27,21 +27,61 @@ INTRO_compare_review_be4_after/
 - **Script Documentation** → `scripts/README.md`
 - **API Reference** → `docs/implementation/`
 
-## Quick Comparison: Anthropic vs vLLM
+## Quick Comparison: Review Methods
 
-| Feature | `review_paper_pairs.py`<br/>(Anthropic) | `review_paper_pairs_vllm.py`<br/>(vLLM) |
-|---------|----------------------------------------|----------------------------------------|
-| **API** | Anthropic Claude API | Local/hosted vLLM (OpenAI-compatible) |
-| **Figures/Images** | ❌ No | ✅ Yes (automatic extraction & encoding) |
-| **Multiple Runs** | ❌ No | ✅ Yes (for variance analysis) |
-| **Cost** | Pay-per-use ($) | Free (if self-hosted) |
-| **Models** | Claude Sonnet/Haiku | Any vLLM-supported model |
-| **Model Formats** | Single JSON format | ✅ Multi-format (SEA-E, CycleReviewer, GenericStructured, CriticalNeurIPS, default) |
-| **Multimodal** | ❌ Text only | ✅ Text + Images |
-| **Setup Complexity** | Easy (just API key) | Moderate (need vLLM server) |
+| Feature | `review_paper_pairs.py`<br/>(Anthropic/Gemini API) | **Manual Gemini UI**<br/>(No API) | `review_paper_pairs_vllm.py`<br/>(vLLM) |
+|---------|----------------------------------------|--------------------------------------|----------------------------------------|
+| **API Key Required** | ✅ Yes | ❌ No (FREE!) | N/A (self-hosted) |
+| **Cost** | Pay-per-use | **FREE** | Free (self-hosted) |
+| **Setup** | Easy (API key) | **Easiest (none!)** | Complex (vLLM server) |
+| **Speed** | Fast (automated) | Slow (manual) | Fast (automated) |
+| **Scalability** | Excellent | Limited (manual work) | Excellent |
+| **Figures/Images** | Anthropic: ❌<br/>Gemini: ✅ | ✅ Yes | ✅ Yes |
+| **Multiple Runs** | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Formats** | Default + CriticalNeurIPS | Default + CriticalNeurIPS | All 5 formats |
+| **Best For** | Large datasets, automation | **Small datasets, no budget** | Research, control |
 
-**Use Anthropic** if you want quick setup and don't need figures.  
-**Use vLLM** if you need figures, want multiple runs for variance analysis, or prefer local models.
+### 🆓 NEW: Manual Gemini Workflow (No API Needed!)
+
+Perfect for users without API access! Uses free Gemini Pro via web UI.
+
+```bash
+# 1. Prepare prompts and figures
+python scripts/utils/prepare_manual_gemini_prompts.py \
+  --csv_file ./data/ICLR2024_pairs/filtered_pairs.csv \
+  --output_dir ./manual_gemini_reviews/ \
+  --format CriticalNeurIPS
+
+# 2. Complete reviews manually at https://aistudio.google.com/
+# Follow README.md in each paper folder
+
+# 3. Process outputs
+python scripts/utils/process_manual_gemini_outputs.py \
+  --input_dir ./manual_gemini_reviews/ \
+  --output_dir ./reviews_gemini_manual/
+```
+
+**📖 Complete Guide**: See [`docs/guides/MANUAL_GEMINI_WORKFLOW.md`](docs/guides/MANUAL_GEMINI_WORKFLOW.md)
+
+### Choosing the Right Method
+
+**Use Anthropic/Gemini API** if:
+- You have API access
+- Need automation
+- Large dataset (>100 papers)
+- Want speed
+
+**Use Manual Gemini UI** if:
+- **No API access** 🎯
+- **Small dataset** (<100 papers)
+- **No budget** 💰
+- Want to learn the process
+
+**Use vLLM** if:
+- Need custom models
+- Want complete control
+- Self-hosting capability
+- Need all format options
 
 ## Setup
 
@@ -51,8 +91,31 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-### For Anthropic API (review_paper_pairs.py)
-Make sure you have `ANTHROPIC_API_KEY` in your `.env` file or environment variables.
+### For Anthropic/Gemini API (review_paper_pairs.py)
+
+**Supports both Anthropic Claude and Google Gemini!**
+
+Add to your `.env` file:
+```bash
+# For Anthropic (Claude)
+ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# For Gemini (optional)
+GEMINI_API_KEY=your_gemini_key_here
+```
+
+**New Features**:
+- ✅ Gemini API support (`--api gemini`)
+- ✅ CriticalNeurIPS format (`--format CriticalNeurIPS`)
+- ✅ Multiple runs (`--num_runs 3`)
+
+See [`docs/guides/ANTHROPIC_SCRIPT_UPDATES.md`](docs/guides/ANTHROPIC_SCRIPT_UPDATES.md) for details.
+
+### For Manual Gemini (No API)
+
+**No setup needed!** Just use the free Gemini UI at https://aistudio.google.com/
+
+See [`docs/guides/MANUAL_GEMINI_WORKFLOW.md`](docs/guides/MANUAL_GEMINI_WORKFLOW.md) for complete guide.
 
 ### For vLLM (review_paper_pairs_vllm.py)
 You need a running vLLM server. The script assumes an OpenAI-compatible API endpoint.

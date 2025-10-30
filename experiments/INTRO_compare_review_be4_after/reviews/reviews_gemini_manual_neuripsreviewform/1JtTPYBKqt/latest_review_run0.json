@@ -1,0 +1,37 @@
+{
+  "summary": "This paper introduces Neural Architecture Retrieval (NAR), a new problem focused on retrieving architecturally similar neural networks from a large database. The authors propose a novel graph representation learning framework to address this. The method first identifies repeated 'motifs' in a network's computational graph, then constructs a 'macro graph' where motifs are nodes. It uses a two-stage contrastive learning process (at the motif-level and graph-level) to learn an embedding for each architecture. The method is evaluated on a newly collected dataset of 12.5k real-world architectures and a 30k-architecture NAS dataset, outperforming GCN and GAT baselines on retrieval metrics.",
+  "strengths": [
+    "The paper introduces Neural Architecture Retrieval (NAR), a novel and potentially high-impact problem, given the rapid proliferation of neural network designs.",
+    "The core idea of using motifs and a hierarchical macro-graph structure to represent large computational graphs is intuitive and well-motivated, addressing clear limitations of applying standard GNNs to varyingly-sized architectures.",
+    "The authors contribute a new, large-scale dataset of 12.5k real-world neural architectures, which could be a valuable resource for future research in this area.",
+    "The proposed two-level contrastive learning framework (at the motif-level and graph-level) is a sound approach for learning hierarchical representations."
+  ],
+  "weaknesses": [
+    "The fundamental definition of 'similarity' is a critical flaw. The system retrieves architectures based purely on topology, completely ignoring the task, dataset, or trained parameters. An architecture's function is inseparable from its task (e.g., a classification ResNet vs. a detection ResNet), making the current topology-only retrieval of limited practical use.",
+    "The experimental validation is circular. The 'ground truth' for retrieval is based on 'coarse-grained' labels (e.g., 'cnn-block', 'attention-block') derived from text-based regular expressions. The model is then trained using a classification loss on these exact labels. Thus, the experiments merely show that the model is good at the classification task it was trained for, not that it has learned a general, meaningful metric of architectural similarity.",
+    "The proposed motif sampling strategy (Section 3.2, Fig 2) is poorly explained and appears ad-hoc. The process of converting the graph to an 'encoded node sequence' and finding 'repeated subsequences' is opaque and not reproducible from the text.",
+    "The paper lacks any qualitative retrieval examples. For a paper proposing a retrieval system, it is essential to show what the system actually retrieves for a given query (e.g., 'ResNet-50') and why those results are considered 'similar'.",
+    "The baselines (GCN, GAT) are weak. More relevant and stronger baselines, such as inductive methods (e.g., GraphSAGE) or hierarchical pooling GNNs, are not considered.",
+    "The problem framing ignores a vast body of work on graph similarity, graph matching, and graph kernels. The paper would be much stronger if it situated its method within this literature, for example, by relating its motif encoding to the Weisfeiler-Lehman isomorphism test."
+  ],
+  "questions": [
+    "Can you provide a much clearer, step-by-step algorithmic description of the motif sampling method from Section 3.2? How exactly is the graph converted to a sequence, and how are 'frequent subsequences' identified from it?",
+    "Why was task information (e.g., 'classification', 'detection'), which was available in your dataset, explicitly ignored? How would your framework incorporate this crucial information to define a more practical 'functional similarity'?",
+    "Why did you use graph edit distance (GED) to create labels for the NAS dataset but not use GED (or a scalable proxy) as a ground-truth similarity metric for the 'real-world' dataset, instead opting for the circular text-based labels?",
+    "Could you provide qualitative retrieval results? For example, what are the top-5 architectures retrieved for a query like 'ViT-B', 'ResNet-50', or 'BERT-base', and how do they demonstrate the system's utility?",
+    "How does your motif-finding and encoding method (Eq. 2) conceptually and empirically compare to established graph kernel methods like the Weisfeiler-Lehman kernel, which also iteratively aggregates neighbor information?"
+  ],
+  "limitations_and_societal_impact": "The authors do not adequately address limitations in the main paper. The most significant limitation is that 'similarity' is defined only by topology, ignoring task and performance. This fundamentally undermines the paper's central claim of useful retrieval, as a 'similar' but task-incompatible architecture is not a useful result. The authors should explicitly state this limitation and frame the work as a first step towards topology-based clustering, not a solved retrieval problem. Societal impact is not discussed, which is acceptable as the work is foundational. A potential negative impact could be the homogenization of architecture design if researchers over-rely on retrieving and modifying only existing 'popular' topologies.",
+  "soundness": 2,
+  "presentation": 2,
+  "contribution": 2,
+  "overall_score": 4,
+  "confidence": 5,
+  "rating": 4,
+  "paper_id": "1JtTPYBKqt",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

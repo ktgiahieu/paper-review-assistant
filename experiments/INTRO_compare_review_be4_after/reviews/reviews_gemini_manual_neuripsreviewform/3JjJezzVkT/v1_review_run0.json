@@ -1,0 +1,38 @@
+{
+  "summary": "This paper investigates the role of momentum in stochastic gradient descent (SGD), specifically in the small learning rate (LR) regime. It presents theoretical analyses suggesting that SGD with momentum (SGDM) and vanilla SGD have equivalent dynamics, both in the short term ($O(1/\\eta)$ steps) and long term ($O(1/\\eta^2)$ steps) near a minimizer manifold. This implies momentum offers no additional optimization or generalization benefit when gradient noise is the dominant source of instability. The authors provide empirical support by showing comparable performance between SGD and SGDM in small-batch ImageNet training and language model fine-tuning. They also use experiments on CIFAR-10 with the SVAG algorithm to argue that momentum's known benefits in large-batch training are primarily due to mitigating curvature-induced instability, not gradient noise reduction.",
+  "strengths": [
+    "The paper addresses a fundamental, practical, and still-debated question: what is the true benefit of momentum in modern deep learning?",
+    "The theoretical framing, separating the analysis into a short-term ($O(1/\\eta)$) SDE approximation and a long-term ($O(1/\\eta^2)$) implicit bias analysis, is rigorous and insightful.",
+    "The finding that SGDM and SGD converge to the same slow SDE (Theorem 14) is a novel and significant contribution, suggesting momentum does not alter the implicit bias in this regime.",
+    "The warm-up example (Section 4.1) provides a clear and intuitive explanation for the apparent paradox that momentum smooths the training path but may not alter the endpoint distribution's variance.",
+    "The experimental use of SVAG to decompose instability into 'curvature-induced' and 'noise-induced' terms is a clever methodological approach to test the paper's hypothesis.",
+    "The empirical validation in practical small-LR regimes (ImageNet small-batch, RoBERTa fine-tuning) is convincing and grounds the theory in real-world scenarios."
+  ],
+  "weaknesses": [
+    "The theoretical analysis is built on two different and contradictory noise scaling assumptions, creating a major source of confusion. Theorem 9 relies on a $\\sigma \\leq \\eta^{-1/2}$ scaling (motivated by $\\sigma = \\eta^{-1/2}$ in Lemma 4) to ensure the noise term is non-vanishing, while Theorem 14 (the slow SDE) explicitly sets $\\sigma \\equiv 1$. This inconsistency undermines the paper's unified theoretical narrative.",
+    "The core CIFAR-10 experiment (Figure 3), which uses SVAG to isolate the source of momentum's benefit, appears to be fundamentally flawed. The caption states the *same* base LR ($\\eta=0.2$) was used for both SGD and SGDM. The correct comparison requires rescaling the SGD learning rate to match SGDM's effective LR (i.e., $\\eta_{SGD} = \\eta_{SGDM} / (1-\\beta) = 0.2 / 0.1 = 2.0$).",
+    "If the comparison in Figure 3 is indeed flawed, its central conclusion—that momentum's benefit is due to curvature and not noise reduction—is unsupported by the provided evidence. The observed gap at $\\ell=1$ is likely just the result of a misconfigured baseline.",
+    "The paper's premise investigates a 'small-LR' regime, which is defined as one where curvature-induced oscillations are *not* present. This *a priori* excludes the primary, well-established benefit of momentum (dating back to Polyak, 1964) which is precisely to stabilize training against this curvature, thus *enabling* the use of a larger, more aggressive learning rate.",
+    "The justification for the $\\sigma = \\eta^{-1/2}$ scaling in Section 4 is confusing. The claim that the 'Linear Scaling Rule falls into this regime' appears incorrect; a standard LSR scaling ($B \\propto \\eta$) would not lead to this relationship."
+  ],
+  "questions": [
+    "Please clarify the contradictory noise scaling assumptions. Theorem 9 requires a specific scaling ($\\sigma \\sim \\eta^{-1/2}$) for the noise term to be non-vanishing, while Theorem 14 uses a classical $\\sigma=1$ scaling. How are these two regimes and their conclusions conceptually unified?",
+    "For the CIFAR-10 experiment (Figure 3), the caption states $\\eta=0.2$ was used for both SGD and SGDM. Was the vanilla SGD (dotted line) baseline run with $\\eta=0.2$ or with the correctly rescaled effective LR of $\\eta = 2.0$?",
+    "If the SGD baseline in Figure 3 was run with $\\eta=0.2$, this is an invalid comparison. The entire experiment must be re-run comparing SGDM($\\eta=0.2, \beta=0.9$) to SGD($\\eta=2.0$). How do the SVAG results and the paper's conclusions change under this corrected experimental setup?",
+    "The paper's non-standard SGDM formulation (Definition 3) and its reparameterization ($\\eta_k = \\gamma / (1-\beta)$) seems to 'bake in' the folklore scaling. How does this specific choice influence the SDE approximation in Theorem 9, and would the same result hold for the standard SGDM formulation (Eq. 1)?",
+    "Can you clarify the justification for $\\sigma = \\eta^{-1/2}$? The provided argument that the Linear Scaling Rule (LSR) fits this seems incorrect. Under LSR, $B \\propto \\eta$, and since noise variance $\\sigma^2 \\propto 1/B$, this implies $\\sigma^2 \\propto 1/\\eta$, not $\\sigma^2 \\propto 1/\\eta^2$ (which would give $\\sigma \\propto 1/\\eta$, not $\\eta^{-1/2}$). What is the practical motivation for this scaling?"
+  ],
+  "limitations_and_societal_impact": "The paper clearly bounds its claims to the 'small learning rate' regime, acknowledging that momentum is beneficial in other settings (e.g., large-batch). This is a well-handled limitation. However, the paper fails to acknowledge the significant methodological limitations in its current presentation, namely the contradictory theoretical assumptions and the flawed experimental comparison in Figure 3. The work does not have direct societal impacts, and a discussion is not required.",
+  "soundness": 2,
+  "presentation": 3,
+  "contribution": 2,
+  "overall_score": 4,
+  "confidence": 5,
+  "rating": 4,
+  "paper_id": "3JjJezzVkT",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

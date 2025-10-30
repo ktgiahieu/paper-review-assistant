@@ -14,8 +14,9 @@ import argparse
 import pandas as pd
 import numpy as np
 import json
+import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -24,6 +25,40 @@ import seaborn as sns
 sns.set_style("whitegrid")
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
+
+def extract_numerical_value(score_str) -> Optional[float]:
+    """
+    Extract numerical value from score string.
+    
+    Examples:
+        "3 good" -> 3.0
+        "2 fair" -> 2.0
+        "6: marginally above the acceptance threshold" -> 6.0
+        "3.5"生肖 -> 3.5
+    
+    Args:
+        score_str: String or number containing numerical score
+        
+    Returns:
+        Extracted numerical value or None if not found
+    """
+    if score_str is None:
+        return None
+    
+    # If already a number, return it
+    if isinstance(score_str, (int, float)):
+        return float(score_str)
+    
+    if not isinstance(score_str, str):
+        return None
+    
+    # Try to extract number from various formats
+    # Pattern 1: "3 good", "2 fair"
+    match = re.match(r'^(\d+(?:\.\d+)?)', str(score_str).strip())
+    if match:
+        return float(match.group(1))
+    
+    return None
 
 def load_ai_reviews(reviews_dir: Path, paper_id: str, version: str, run_id: int = None) -> List[Dict]:
     """

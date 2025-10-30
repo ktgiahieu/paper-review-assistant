@@ -235,6 +235,27 @@ def collect_all_scores(reviews_dir: Path) -> pd.DataFrame:
     
     return df
 
+def filter_complete_runs(df: pd.DataFrame, num_runs: int = 3) -> pd.DataFrame:
+    """
+    Keep only papers that have exactly num_runs v1 and num_runs latest reviews.
+    For multi-reviewer formats, we check presence via unique (paper_id, version, run_id) tuples.
+    """
+    if df.empty:
+        return df
+    # Determine which (paper, version, run) exist
+    run_presence = df.groupby(['paper_id', 'version', 'run_id']).size().reset_index(name='n')
+    # Count runs per version
+    counts = run_presence.groupby(['paper_id', 'version'])['run_id'].nunique().unstack(fill_value=0)
+    # Require both columns present
+    for col in ['v1', 'latest']:
+        if col not in counts.columns:
+            counts[col] = 0
+    complete_papers = counts[(counts['v1'] >= num_runs) & (counts['latest'] >= num_runs)].index
+    df_filtered = df[df['paper_id'].isin([pid for pid in complete_papers])]
+    # Additionally, restrict to run_ids 0..num_runs-1 for consistency
+    df_filtered = df_filtered[df_filtered['run_id'].isin(list(range(num_runs)))]
+    return df_filtered
+
 def compute_paired_statistics(df: pd.DataFrame, metric: str) -> Dict:
     """
     Compute paired t-test statistics for a metric comparing v1 vs latest.
@@ -852,6 +873,12 @@ def main():
         default="evaluation",
         help="Prefix for output files"
     )
+    parser.add_argument(
+        "--num_runs",
+        type=int,
+        default=3,
+        help="Required number of runs per version (default: 3). Papers without full runs are skipped."
+    )
     
     args = parser.parse_args()
     
@@ -871,6 +898,12 @@ def main():
     print("="*80)
     
     df_scores = collect_all_scores(reviews_dir)
+    # Filter to only complete papers with full runs
+    df_scores = filter_complete_runs(df_scores, num_runs=args.num_runs)
+    if len(df_scores) == 0:
+        print("\nError: No scores after filtering for complete runs.")
+        print("Ensure each paper has v1 and latest for runs 0..{0}.".format(args.num_runs - 1))
+        return
     
     if len(df_scores) == 0:
         print("\nError: No scores collected. Check reviews_dir path and file structure.")

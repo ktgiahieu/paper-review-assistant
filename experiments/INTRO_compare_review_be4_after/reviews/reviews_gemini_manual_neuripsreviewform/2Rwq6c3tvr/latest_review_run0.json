@@ -1,0 +1,39 @@
+{
+  "summary": "This paper proposes a low-cost, black-box method to detect data contamination in large language models. The core technique involves prompting an LLM with a 'guided instruction'—containing the dataset name, partition, and an initial segment of an instance—to elicit a completion. The authors present two algorithms to detect partition-level contamination: (1) checking if the guided prompt's completions are statistically significantly better (via ROUGE-L/BLEURT) than completions from a 'general' prompt, and (2) using a few-shot GPT-4 classifier to identify at least one 'exact match' or two 'near-exact matches' from a small sample. The second method shows high (92-100%) accuracy against human evaluation across 28 scenarios and identifies potential contamination in GPT-4 for AG News, WNLI, and XSum.",
+  "strengths": [
+    "Addresses the critical and timely problem of data contamination in closed-source LLMs, which is essential for valid benchmark evaluation.",
+    "Proposes a novel, inexpensive, and replicable black-box detection method that does not require access to the model's training data.",
+    "The core idea of comparing a 'guided instruction' against a 'general instruction' (Algorithm 1) is a well-conceived experimental control.",
+    "The use of a controlled study (Section 3.3) to intentionally contaminate a model, while imperfect, demonstrates a thoughtful effort to validate the method's detection thresholds.",
+    "The paper is exceptionally well-written, clearly structured, and easy to follow, with thorough appendices detailing the prompts and experiments.",
+    "The finding that GPT-4 (ICL) can automate the human evaluation process for 'near-exact' matches (Algorithm 2) is itself a useful contribution."
+  ],
+  "weaknesses": [
+    "The method's fundamental limitation, acknowledged by the authors, is its inability to distinguish true verbatim *instance* contamination from *metadata* contamination (e.g., the model learning the format or topics of a dataset from web discussions).",
+    "This primary weakness undermines Algorithm 1, as metadata contamination alone could plausibly produce a statistically significant increase in overlap scores for the 'guided' prompt.",
+    "The evaluation of Algorithm 2 (GPT-4 ICL) is circular. Its 100% accuracy on GPT-4 is unsurprising because the classifier was few-shot prompted using the *same* human-defined rules and examples it was being compared against.",
+    "The validation study (Section 3.3) uses *fine-tuning* to simulate contamination, which has vastly different memorization dynamics than *pre-training* and is not a valid simulation of the target problem.",
+    "The 'near-exact match' criterion, which is critical for Algorithm 2, is inherently ambiguous and is the most likely failure mode for conflating in-distribution generation (from metadata) with actual recitation (from instance contamination).",
+    "Algorithm 1 relies on a bootstrap significance test with a sample size of N=10, which is statistically low-powered. The paper provides no justification or sensitivity analysis for this choice."
+  ],
+  "questions": [
+    "The validation in 3.3 uses fine-tuning, which is not representative of pre-training memorization. A more convincing validation might involve using a model suite with a fully public dataset, like Pythia, to see if your method correctly identifies contamination known to be sparse and from pre-training.",
+    "Given the circularity of Algorithm 2's evaluation, could you re-test this by using a zero-shot Chain-of-Thought prompt for the GPT-4 classifier, without priming it with human-labeled examples, to see if it independently arrives at the same conclusions?",
+    "Why was a sample size of N=10 chosen for Algorithm 1? This seems too low for a reliable bootstrap test. Could you provide a power analysis or at least demonstrate how the p-values change with N=50 or N=100?",
+    "Could you conduct an ablation study using 'incorrect' metadata? For example, providing an IMDB instance prefix while claiming `Dataset: AG News`. This could help disentangle whether the model is reciting from a specific (dataset, split) key or just being primed to generate 'news-like' text.",
+    "How can you be more certain that 'near-exact matches' are not just high-quality, in-distribution generations triggered by metadata priming? This distinction seems to be the weakest link in the inference from 'recitation' to 'contamination'."
+  ],
+  "limitations_and_societal_impact": "The authors added a limitations section [^12] in response to reviews, which is commendable. It correctly identifies the method's inability to distinguish between different *types* of contamination (e.g., verbatim instance vs. metadata/format) as a key weakness. This is not a minor point; it is a fundamental challenge to the paper's central claim of detecting 'data contamination,' as the method primarily detects 'elicitable recitation' which may have other causes. The paper does not discuss societal impact, but the work is a positive contribution toward benchmark integrity and model transparency, which are clear societal benefits.",
+  "soundness": 2,
+  "presentation": 4,
+  "contribution": 3,
+  "overall_score": 5,
+  "confidence": 5,
+  "rating": 5,
+  "paper_id": "2Rwq6c3tvr",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

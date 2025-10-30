@@ -1,0 +1,38 @@
+{
+  "summary": "This paper proposes a black-box method to detect data contamination in large language models. The approach uses 'guided instructions'—prompts containing the dataset and partition name—to elicit completions of partial instances from a small sample. The authors introduce two algorithms to flag a dataset partition as contaminated: (1) a statistical comparison of overlap scores (ROUGE, BLEURT) from 'guided' vs. 'general' instructions, and (2) a heuristic based on a GPT-4 classifier detecting at least one exact or two near-exact matches. Experiments on GPT-3.5 and GPT-4 find the second algorithm to be highly accurate against a human expert baseline, and report contamination in GPT-4 for AG News, WNLI, and XSum.",
+  "strengths": [
+    "The paper tackles the critical and difficult problem of detecting data contamination in closed-source LLMs, which is essential for valid model evaluation.",
+    "The proposed method is inexpensive and efficient, requiring only a small number of API queries (a sample of k=10) to assess a dataset partition.",
+    "The idea of comparing a 'guided instruction' against a 'general instruction' (Algorithm 1) is a conceptually sound way to attempt to isolate dataset-specific knowledge.",
+    "The paper is clearly written, and the proposed algorithms are straightforward to understand and implement."
+  ],
+  "weaknesses": [
+    "The paper's core methodology suffers from a critical confound: it cannot distinguish true instance-level contamination (memorization) from 'metadata contamination' (knowledge of the dataset's structure, format, or common topics).",
+    "The 'guided instruction' provides strong signals (dataset name, partition name) that allow a model to 'role-play' and generate a plausible-sounding instance, even if it has never seen that specific instance in training.",
+    "The 'ground truth' human evaluation is circular. The human expert used the *same* heuristic (>=1 exact or >=2 near-exact matches) as Algorithm 2. Therefore, the 100% accuracy claim is tautological and merely shows that GPT-4 (as a classifier) can replicate this specific human's heuristic, not that the heuristic itself correctly identifies contamination.",
+    "The sample size of k=10 is statistically insufficient for making robust claims about an entire dataset partition. The partition-level conclusion is extremely sensitive to single false positives.",
+    "The heuristic for Algorithm 2 ('>=1 exact match' or '>=2 near-exact matches') is arbitrary and not statistically justified. No sensitivity analysis is provided for this crucial threshold.",
+    "The experimental results in Table 2 are incomplete and poorly presented, with '?' marks for the baseline and icon-based results that omit the raw counts of matches, making full verification impossible.",
+    "The poor performance of the more-principled Algorithm 1 on GPT-3.5 (50% accuracy) suggests the statistical signal is weak and not robustly generalizable across models, which the authors then abandon for a less-rigorous heuristic."
+  ],
+  "questions": [
+    "How can you operationally distinguish between a model that has memorized a specific instance (verbatim contamination) and a model that has simply learned the dataset's *metadata* and can generate a plausible instance when prompted with the dataset name?",
+    "Could you test your method's specificity by providing a 'guided instruction' with a *fake* dataset or split name? This would help address the confound between memorization and instruction-following.",
+    "The 'human evaluation' ground truth is circular. A more robust validation would involve creating a known-contaminated (e.g., by fine-tuning) and known-clean model and testing your method's precision and recall. Why was this not done?",
+    "Can you provide a statistical justification for the '>=1 exact or >=2 near-exact' threshold on a sample of 10? How do your results change if the threshold is '>=2 exact' or '>=1 near-exact'?",
+    "Please provide the full results for Table 2, including the raw number of exact and near-exact matches (e.g., 'X/10') for all methods and models, and a complete run of the 'Did-ChatGPT-Cheat?' baseline."
+  ],
+  "limitations_and_societal_impact": "The paper critically lacks a limitations section. The primary limitation, which the authors must address, is that the method cannot distinguish between verbatim instance contamination and metadata contamination (i.e., the model knowing *about* a dataset from public descriptions, papers, or code). This confound undermines the validity of the paper's conclusions. The claim to detect 'test data in the training data' is unsubstantiated; rather, the paper detects that a model *knows about* a dataset when explicitly prompted. This has serious societal implications: the method as-is could lead to false accusations of 'cheating' or contamination, damaging trust in model evaluations. The authors must add a section clearly stating this limitation and re-frame their conclusions to reflect what their method actually measures.",
+  "soundness": 2,
+  "presentation": 3,
+  "contribution": 2,
+  "overall_score": 4,
+  "confidence": 5,
+  "rating": 4,
+  "paper_id": "2Rwq6c3tvr",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

@@ -1,0 +1,36 @@
+{
+  "summary": "The paper addresses the 'selective labels' problem, where outcomes are only observed for a non-randomly selected subpopulation (e.g., patients who are tested). The authors propose a Bayesian model that explicitly includes unobservables and introduce two domain-specific constraints—a 'prevalence constraint' (using known population-wide outcome prevalence) and an 'expertise constraint' (assuming certain features do not influence the selection decision, given risk)—to improve model estimation. They provide theoretical arguments (linking to the Heckman model and showing variance reduction), synthetic experiments, and a real-world case study on breast cancer prediction to demonstrate that these constraints significantly improve the accuracy and precision of parameter inference and lead to more plausible risk estimates.",
+  "strengths": [
+    "The paper tackles the critical and widespread selective labels problem with a clear, well-specified Bayesian model.",
+    "The proposed 'prevalence constraint' is a highly plausible and powerful addition, convincingly demonstrated in the case study (Fig 4) to correct misleading, biased inferences.",
+    "The validation of the case study model is exceptionally strong, particularly in how the inferred parameters (beta_Y and beta_Delta) align with known medical risk factors and public health policies (Fig 3).",
+    "The synthetic experiments (Fig 2) show a very large and compelling quantitative improvement in both precision (CI width) and accuracy (posterior mean error) from adding the constraints.",
+    "The robustness checks in the appendix are thorough, testing sensitivity to the prevalence value (Fig 17), the distribution of unobservables (Fig 11), and the alpha parameter (Fig 14)."
+  ],
+  "weaknesses": [
+    "The 'expertise constraint' (beta_Delta_d=0) is a strong assumption, and the paper lacks a sensitivity analysis on what happens if this constraint is misspecified (i.e., a non-zero coefficient is wrongly constrained to zero).",
+    "The theoretical contribution (Proposition 2) is a direct consequence of the law of total variance and thus, while true, is less a novel finding and more a restatement of a fundamental statistical property (conditioning reduces variance).",
+    "The model assumes a single, scalar unobservable (Z_i) mediates all unobserved confounding, which is a strong simplification of real-world processes where unobservables might be multi-dimensional.",
+    "The paper's framing of the 'expertise constraint' misses an opportunity to deeply connect and contrast it with the classic 'exclusion restriction' from the econometrics literature, which is the standard tool for the Heckman model."
+  ],
+  "questions": [
+    "Could you conduct a sensitivity analysis for the expertise constraint? What happens to parameter estimates if you incorrectly constrain a feature beta_Delta_d to 0 when its true value is non-zero?",
+    "The model assumes a scalar unobservable Z_i. How do you expect the model's performance and the validity of the constraints to be affected if Z_i were multi-dimensional (e.g., separate unobserved factors for risk and for testing bias)?",
+    "The parameter alpha is treated as a fixed constant (or fixed to 1 or 2). Could alpha itself be a function of observables X_i, reflecting that decision-maker 'expertise' (adherence to risk) might vary across patient groups?",
+    "How does the performance of the prevalence constraint degrade as the assumed E[Y] becomes more inaccurate? The robustness check (Fig 17-18) is good, but a more systematic study of this failure mode would be valuable.",
+    "Given the link to the Heckman model, have you compared your constraints' performance (in precision/accuracy) to the standard econometric approach of using a single, strong exclusion restriction (a variable in T but not Y)?"
+  ],
+  "limitations_and_societal_impact": "The authors briefly discuss the societal impact in the context of healthcare and potential biases, and the case study's focus on racial disparities (beta_Delta for Black/Asian women) is a good, direct engagement with this. The limitations are not explicitly stated in a dedicated section, but are implied (e.g., linear model, single unobservable). A more direct discussion of the model's limitations, especially the strong assumptions about the data generating process (Eq 1) and the unobservable structure, would strengthen the paper. The authors should also reiterate that the model's findings of 'suboptimalities' (e.g., negative beta_Delta for genetic risk) are inferences from the model, and their validity depends entirely on the model's (and constraints') correctness.",
+  "soundness": 4,
+  "presentation": 4,
+  "contribution": 4,
+  "overall_score": 8,
+  "confidence": 5,
+  "rating": 8,
+  "paper_id": "1mNFsbvo2P",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}

@@ -1,0 +1,37 @@
+{
+  "summary": "This paper formalizes the problem of 'hidden context' in preference learning, where factors like annotator diversity or conflicting objectives (e.g., helpfulness vs. harmlessness) influence preference data but are not modeled. The authors theoretically prove that standard BTL-based preference learning (used in RLHF) implicitly aggregates these contexts via a Borda count, which can differ from expected utility and create social choice vulnerabilities. They propose Distributional Preference Learning (DPL) to estimate a *distribution* of utility values rather than a single score, allowing it to model this variance. Experiments on a modified HH-RLHF dataset show DPL can detect this hidden context and that risk-averse optimization over the learned distribution can significantly reduce LLM jailbreak vulnerability.",
+  "strengths": [
+    "The paper provides a strong, clear formalization of 'hidden context' (e.g., annotator identity, multiple objectives) as a latent variable, a ubiquitous and under-addressed problem in practical RLHF.",
+    "The theoretical result linking standard BTL-MLE to Borda count aggregation in the presence of hidden context is the paper's core strength, providing a novel and incisive conceptual lens.",
+    "The connection to social choice theory, highlighting that the Borda count aggregation implies an incentive for annotators to misreport preferences, is a significant and practical insight for the RLHF pipeline.",
+    "The proposed DPL method is an intuitive and natural response to the problem, and its learned distributions offer a clear mechanism for detection (via $r^2$) and mitigation (via risk-aversion).",
+    "The experimental result showing that risk-averse optimization with DPL can substantially reduce jailbreak rates while maintaining helpfulness is a promising and practically relevant finding."
+  ],
+  "weaknesses": [
+    "The paper critically fails to provide the explicit, complete loss function for the proposed DPL method in Section 4. It only provides per-sample log-probabilities, which is insufficient for understanding the full objective and makes the core method unreproducible.",
+    "The theoretical proofs in the appendix contain significant notational errors, undefined symbols, and inconsistencies (e.g., in Theorem 3.2 and Proposition A.3), which prevents verification of the paper's central theoretical claims and compromises its soundness.",
+    "The experimental setup in Section 5 is significantly weakened by the use of synthetically relabeled data (via GPT-3.5, as per Appendix 9) to create the 'hidden context'. This makes the 'detection' claim circular and non-representative of a real-world scenario.",
+    "The paper omits a crucial and obvious baseline: explicitly training two separate reward models ($`\\hat{u}_\\text{helpful}`$ and $`\\hat{u}_\\text{harmless}`$) and using a multi-objective or risk-averse combination, a method directly suggested by the experimental setup and related work.",
+    "The framing of 'hidden context' as a new concept overlooks the vast, foundational literature on Random Utility Models (RUMs) in econometrics, which is the standard framework for modeling utility as a function of latent variables. The paper fails to properly situate itself within this context."
+  ],
+  "questions": [
+    "Could you please provide the exact, full optimization objective (i.e., the complete loss function) for DPL in Section 4? The current description is ambiguous and insufficient for reproduction.",
+    "The theoretical proofs in the appendix contain several notational errors that make them impossible to verify. Can you provide corrected proofs for all theoretical claims, particularly Theorem 3.2 and Proposition A.3?",
+    "Appendix 9 reveals the HH dataset was synthetically relabeled to create the hidden context. Why was this done, and how does this not invalidate the claim that DPL 'detected' a naturally occurring phenomenon?",
+    "How does DPL with risk-aversion compare to the strong baseline of training two separate reward models (for helpfulness and harmlessness) and optimizing a robust objective over them (e.g., $`\\max \\min(\\hat{u}_\\text{helpful}, \\hat{u}_\\text{harmless})`$)?",
+    "How does your formalization of $`u(a, z)`$ relate to the decades of work on Random Utility Models (RUMs) in discrete choice theory, which seem to model the exact same phenomenon? This connection seems to be a major omission."
+  ],
+  "limitations_and_societal_impact": "The paper does an excellent job discussing the societal *impact* and *implications* of its core problem (e.g., the Pell Grant example, social choice vulnerabilities). However, it almost entirely fails to discuss the *limitations* of its own proposed method, DPL. For instance, DPL (especially the categorical version) introduces significant computational overhead, new hyperparameters, and potential for poor calibration of the learned distribution. The authors should add a dedicated subsection to frankly discuss the assumptions, failure modes, and computational costs of DPL as a practical alternative to standard preference learning.",
+  "soundness": 2,
+  "presentation": 2,
+  "contribution": 3,
+  "overall_score": 5,
+  "confidence": 5,
+  "rating": 5,
+  "paper_id": "0tWTxYYPnW",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "gemini_manual_CriticalNeurIPS",
+  "success": true,
+  "source": "manual_gemini_ui"
+}
