@@ -1,0 +1,35 @@
+{
+  "summary": "This paper proposes TGC, a framework for deep temporal graph clustering that adapts static graph clustering techniques to the batch-processing pattern of temporal graphs. The authors argue that temporal graph clustering differs fundamentally from static graph clustering and propose modifications to node-level distribution assignment and batch-level reconstruction losses to handle interaction sequences instead of full adjacency matrices.",
+  "strengths": [
+    "Well-motivated problem formulation: The paper provides a clear discussion of why temporal graph clustering differs from static graph clustering across multiple levels (intuition, complexity, data processing patterns), making a good case for why existing methods fall short.",
+    "Practical contribution with new datasets: The authors curate and develop temporal graph clustering benchmarks (arXivAI, arXivCS), addressing a real gap in available datasets for evaluating temporal clustering methods.",
+    "Comprehensive experimental evaluation: The paper includes extensive experiments across 6 datasets with multiple baselines, ablation studies on transferability, memory usage analysis, and batch size flexibility demonstrations.",
+    "General framework design: TGC is presented as a general framework that can be applied to different temporal graph learning methods (demonstrated with HTNE, TGN, TREND), showing practical generalizability.",
+    "Clear complexity analysis: The paper provides a rigorous analysis of computational and space complexity advantages (O(|E|) vs O(N²)), with concrete memory measurements demonstrating practical benefits."
+  ],
+  "weaknesses": [
+    "Limited technical novelty: The core components (Student's t-distribution assignment from DEC, KL divergence loss, cosine similarity reconstruction) are standard techniques from existing clustering literature. The main contribution is adapting these to temporal graphs rather than developing novel methods.",
+    "Weak theoretical justification: The batch-level reconstruction loss (Eq. L_batch) appears ad-hoc. Using only nodes in current batch plus negative samples for reconstruction is a significant departure from adjacency matrix reconstruction, yet the paper provides limited theoretical or empirical justification for why this approximation is valid or optimal.",
+    "Initialization dependency on node2vec: The method relies on pre-training with node2vec for initial node features and K-means clustering centers. This dependency is not thoroughly analyzed—ablations showing the impact of initialization quality are missing, and the claim that 'other classical methods can be used as well' is unvalidated.",
+    "Dataset quality concerns: The newly constructed arXivCS dataset with 40 clusters shows poor performance across all methods (best ACC ~40%), raising questions about label quality. The paper acknowledges overlapping domains but doesn't adequately address whether this dataset is suitable for clustering evaluation.",
+    "Limited comparison with temporal baselines: Most strong baselines are static methods. The comparison with temporal methods (HTNE, TGAT, JODIE, TGN, TREND) shows they perform worse than static methods without clustering objectives, but there's insufficient analysis of why or how TGC specifically helps temporal methods versus static ones.",
+    "Incomplete experimental details: Important details are missing—hyperparameter settings, training procedures, convergence criteria, and statistical significance testing (error bars, confidence intervals) are not reported. Some experiments are relegated to appendix without clear justification."
+  ],
+  "clarity_score": 7,
+  "novelty_score": 5,
+  "technical_quality_score": 6,
+  "experimental_rigor_score": 6,
+  "overall_score": 6,
+  "confidence": 3,
+  "recommendation": "Weak Reject",
+  "detailed_comments": "The paper addresses a relevant and underexplored problem—temporal graph clustering—and provides practical contributions through dataset curation and memory efficiency analysis. However, the technical contribution is limited: it primarily combines existing clustering techniques (DEC-style assignment, KL divergence, cosine similarity reconstruction) with temporal graph processing, which is more of an engineering contribution than a novel algorithmic advance. The batch-level reconstruction loss appears to be a pragmatic but theoretically unjustified workaround for the lack of full adjacency matrices. While experiments are extensive, they lack statistical rigor (no confidence intervals, significance tests), important ablations (initialization impact, loss component contributions), and sufficient analysis of why the method works. The newly developed arXivCS dataset's poor performance across all methods suggests potential label quality issues. For a top-tier venue, the paper would benefit from: (1) deeper theoretical analysis of the batch reconstruction approximation, (2) thorough ablation studies, (3) more rigorous temporal baseline comparisons, and (4) improved dataset quality or clearer characterization of dataset difficulty.",
+  "paper_id": "ViNe1fjGME",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": true,
+  "soundness": 6,
+  "presentation": 7,
+  "contribution": 5,
+  "rating": 6
+}

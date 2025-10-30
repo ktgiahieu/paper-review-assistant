@@ -1,0 +1,35 @@
+{
+  "summary": "This paper proposes generative MMD flows with Riesz kernels for scalable generative modeling. The key contribution is showing that MMD with Riesz kernels coincides with sliced MMD, enabling efficient computation via a sorting algorithm with complexity O((M+N)log(M+N)). The authors develop a generative model by training neural networks to approximate MMD gradient flow steps and demonstrate results on MNIST, FashionMNIST, and CIFAR10.",
+  "strengths": [
+    "Strong theoretical contributions: The paper proves that MMD with Riesz kernels defines a metric on probability measures (Theorem 1) and establishes the fundamental property that sliced MMD coincides with MMD for Riesz kernels (Theorem 2), connecting sliced metrics back to standard MMD.",
+    "Significant computational speedup: The sorting algorithm reduces gradient computation complexity from O(MN+N²) to O((M+N)log(M+N)) for r=1, making large-scale applications feasible. This is a substantial practical improvement.",
+    "Rigorous error analysis: Theorem 4 provides convergence guarantees showing the approximation error scales as O(√(d/P)), which is favorable for high-dimensional problems and backed by numerical experiments.",
+    "Novel architectural approach: The iterative training of separate neural networks for flow steps is practical and memory-efficient, allowing training on modest GPUs (8GB) while maintaining expressiveness.",
+    "Mathematical rigor: The proofs are detailed and appear sound, with careful treatment of technical issues like non-compact domains and conditional positive definiteness."
+  ],
+  "weaknesses": [
+    "Limited experimental validation: Results on CIFAR10 (FID=87.1) are substantially worse than state-of-the-art methods (NCSN: FID=25.3), suggesting the approach may not scale well to complex datasets despite theoretical claims about high-dimensional applicability.",
+    "Incomplete experimental comparison: The paper lacks comparisons with other MMD-based or sliced-based generative models on the same datasets. The comparison table mixes methods from different years/settings, making it difficult to assess relative performance fairly.",
+    "Heuristic design choices: Many implementation details appear ad-hoc (e.g., momentum schedules, number of projections P, step sizes τ) without principled justification or sensitivity analysis. The choice P=1000 for MNIST vs P=4000 for CIFAR10 lacks explanation.",
+    "Narrow scope of theoretical results: The efficient sorting algorithm applies only to r=1 (negative distance kernel). Results for other Riesz kernels (r∈(0,2)) require expensive high-dimensional slicing, limiting practical impact.",
+    "Missing ablation studies and analysis: No systematic ablation of key components (number of networks L, flow steps per network, projection count P). The paper doesn't analyze failure modes or provide intuition for why CIFAR10 performance is poor.",
+    "Modest baseline comparisons: The MNIST (FID=4.3) and FashionMNIST (FID=12.5) results are competitive with older baselines but don't clearly outperform recent deep generative models on standard benchmarks."
+  ],
+  "clarity_score": 7,
+  "novelty_score": 7,
+  "technical_quality_score": 8,
+  "experimental_rigor_score": 5,
+  "overall_score": 6,
+  "confidence": 4,
+  "recommendation": "Borderline",
+  "detailed_comments": "The paper makes solid theoretical contributions with the metric property of Riesz kernels and the coincidence of sliced and unsliced MMD. The sorting algorithm is elegant and provides genuine computational benefits. However, the experimental results are a significant weakness—CIFAR10 results are substantially below state-of-the-art, raising questions about practical applicability despite the theoretical advantages. The paper would be strengthened by (1) more thorough experimental validation with ablation studies, (2) direct comparisons with other sliced-metric or MMD-based generative models, (3) analysis of why performance degrades on complex datasets, and (4) more principled approaches to hyperparameter selection. The work represents a meaningful theoretical advance but with limited practical impact in the current experimental evaluation.",
+  "paper_id": "VdkGRV1vcf",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": true,
+  "soundness": 8,
+  "presentation": 7,
+  "contribution": 7,
+  "rating": 6
+}

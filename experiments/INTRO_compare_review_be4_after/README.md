@@ -2,6 +2,31 @@
 
 This directory contains scripts to compare reviews between v1 and latest versions of papers.
 
+## 📁 Directory Structure
+
+```
+INTRO_compare_review_be4_after/
+├── scripts/              # All executable Python scripts
+│   ├── review/          # Review generation (Anthropic, vLLM)
+│   ├── evaluation/      # Analysis and statistical evaluation
+│   └── utils/           # Data preparation utilities
+├── docs/                # Complete documentation
+│   ├── guides/          # User guides and tutorials
+│   ├── implementation/  # Technical documentation
+│   └── fixes/           # Bug fix documentation
+├── data/                # Paper data and CSVs
+│   └── ICLR2024_pairs/  # Paper pairs (v1 vs latest)
+├── tests/               # Test scripts and outputs
+├── requirements.txt     # Python dependencies
+└── README.md           # This file
+```
+
+**📌 Quick Navigation:**
+- **Getting Started** → See sections below
+- **Detailed Guides** → `docs/guides/`
+- **Script Documentation** → `scripts/README.md`
+- **API Reference** → `docs/implementation/`
+
 ## Quick Comparison: Anthropic vs vLLM
 
 | Feature | `review_paper_pairs.py`<br/>(Anthropic) | `review_paper_pairs_vllm.py`<br/>(vLLM) |
@@ -11,7 +36,7 @@ This directory contains scripts to compare reviews between v1 and latest version
 | **Multiple Runs** | ❌ No | ✅ Yes (for variance analysis) |
 | **Cost** | Pay-per-use ($) | Free (if self-hosted) |
 | **Models** | Claude Sonnet/Haiku | Any vLLM-supported model |
-| **Model Formats** | Single JSON format | ✅ Multi-format (SEA-E, CycleReviewer, GenericStructured, default) |
+| **Model Formats** | Single JSON format | ✅ Multi-format (SEA-E, CycleReviewer, GenericStructured, CriticalNeurIPS, default) |
 | **Multimodal** | ❌ Text only | ✅ Text + Images |
 | **Setup Complexity** | Easy (just API key) | Moderate (need vLLM server) |
 
@@ -37,7 +62,7 @@ You need a running vLLM server. The script assumes an OpenAI-compatible API endp
 ### Step 1: Extract Paper Pairs
 
 ```bash
-python get_paper_pairs.py
+python scripts/utils/get_paper_pairs.py
 ```
 
 This will:
@@ -57,7 +82,7 @@ The script supports debug modes to save API credits!
 **Test with 1 paper, v1 only (1 API call):**
 
 ```bash
-python review_paper_pairs.py \
+python scripts/review/review_paper_pairs.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_test" \
   --version v1 \
@@ -68,7 +93,7 @@ python review_paper_pairs.py \
 **Add latest version to same paper (1 more API call):**
 
 ```bash
-python review_paper_pairs.py \
+python scripts/review/review_paper_pairs.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_test" \
   --version latest \
@@ -79,7 +104,7 @@ python review_paper_pairs.py \
 **Expand to 10 papers:**
 
 ```bash
-python review_paper_pairs.py \
+python scripts/review/review_paper_pairs.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_test" \
   --version both \
@@ -92,7 +117,7 @@ python review_paper_pairs.py \
 **Review all v1 versions first:**
 
 ```bash
-python review_paper_pairs.py \
+python scripts/review/review_paper_pairs.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./data/ICLR2024_pairs/reviews" \
   --version v1 \
@@ -102,7 +127,7 @@ python review_paper_pairs.py \
 **Then add latest versions:**
 
 ```bash
-python review_paper_pairs.py \
+python scripts/review/review_paper_pairs.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./data/ICLR2024_pairs/reviews" \
   --version latest \
@@ -113,7 +138,7 @@ python review_paper_pairs.py \
 **Or do both at once:**
 
 ```bash
-python review_paper_pairs.py \
+python scripts/review/review_paper_pairs.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./data/ICLR2024_pairs/reviews" \
   --version both \
@@ -150,7 +175,7 @@ python -m vllm.entrypoints.openai.api_server \
 **Test with 1 paper, v1 only, 1 run (1 API call):**
 
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_vllm_test" \
   --vllm_endpoint "http://localhost:8000" \
@@ -164,7 +189,7 @@ python review_paper_pairs_vllm.py \
 **Test multiple runs (3x same paper for variance analysis):**
 
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_vllm_test" \
   --vllm_endpoint "http://localhost:8000" \
@@ -181,7 +206,7 @@ python review_paper_pairs_vllm.py \
 **Full run with figures and multiple runs:**
 
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./data/ICLR2024_pairs/reviews_vllm" \
   --vllm_endpoint "http://localhost:8000" \
@@ -196,7 +221,7 @@ python review_paper_pairs_vllm.py \
 **Continue from previous run (skip existing):**
 
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./data/ICLR2024_pairs/reviews_vllm" \
   --vllm_endpoint "http://localhost:8000" \
@@ -216,7 +241,8 @@ python review_paper_pairs_vllm.py \
   - Use `--num_runs 3` or `--num_runs 5` for variance analysis
   - Each run is saved separately as `v1_review_run0.json`, `v1_review_run1.json`, etc.
 - `--timeout`: Request timeout in seconds (default: model-specific)
-  - **Default: 300s** (5 minutes) for SEA-E, GenericStructured
+  - **Default: 300s** (5 minutes) for SEA-E, GenericStructured, default
+  - **Default: 600s** (10 minutes) for CriticalNeurIPS (deep analysis)
   - **Default: 900s** (15 minutes) for CycleReviewer (generates 4 reviewers)
   - Use `--timeout 1200` for slower models or complex papers
 
@@ -266,7 +292,7 @@ The vLLM script supports **multiple output formats** based on the model name:
 
 #### SEA-E Format
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_seae" \
   --vllm_endpoint "http://localhost:8000" \
@@ -286,7 +312,7 @@ See [`SEAE_PARSER_IMPROVEMENTS.md`](./SEAE_PARSER_IMPROVEMENTS.md) for details.
 
 #### CycleReviewer Format
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_cycle" \
   --vllm_endpoint "http://localhost:8000" \
@@ -306,7 +332,7 @@ python review_paper_pairs_vllm.py \
 
 #### Default (JSON) Format
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_qwen" \
   --vllm_endpoint "http://localhost:8000" \
@@ -319,7 +345,7 @@ python review_paper_pairs_vllm.py \
 
 #### GenericStructured Format (for Non-Finetuned Models)
 ```bash
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
   --output_dir "./reviews_llama" \
   --vllm_endpoint "http://localhost:8000" \
@@ -338,18 +364,46 @@ python review_paper_pairs_vllm.py \
 - Multiple reminders to output only JSON
 - Best for models without instruction fine-tuning
 
+#### CriticalNeurIPS Format (for Deep, Scholarly Critiques)
+```bash
+python scripts/review/review_paper_pairs_vllm.py \
+  --csv_file "./data/ICLR2024_pairs/filtered_pairs.csv" \
+  --output_dir "./reviews_critical" \
+  --vllm_endpoint "http://localhost:8000" \
+  --model_name "meta-llama/Llama-3.1-70B-Instruct" \
+  --format CriticalNeurIPS \
+  --num_runs 3 \
+  --max_figures 5
+```
+
+**Output:** Multi-faceted critical review with evidence-based feedback
+
+**Features:**
+- **Multi-perspective analysis**: Conceptual critique + Methodological scrutiny
+- **Evidence-based**: Cites literature, counter-examples, alternative hypotheses
+- **Scholarly rigor**: Questions assumptions, challenges from first principles
+- **Longer timeout**: 10 minutes (vs 5 min for other formats) for thorough analysis
+- **Markdown formatting**: Combined strengths/weaknesses section
+- **Ethical considerations**: Dedicated limitations and societal impact field
+
+**Best for:** High-quality, publication-ready reviews that deeply engage with papers
+
+**For complete details, see:** [`CRITICAL_NEURIPS_FORMAT.md`](./docs/implementation/CRITICAL_NEURIPS_FORMAT.md) | [`Quick Start Guide`](./docs/guides/CRITICAL_NEURIPS_QUICK_START.md)
+
+---
+
 #### Format Override Option
 
 You can use `--format` to override automatic model detection:
 
 ```bash
 # Force GenericStructured format for any model
-python review_paper_pairs_vllm.py \
+python scripts/review/review_paper_pairs_vllm.py \
   --model_name "any-model" \
   --format GenericStructured \
   ...
 
-# Options: SEA-E, CycleReviewer, GenericStructured, default
+# Options: SEA-E, CycleReviewer, GenericStructured, CriticalNeurIPS, default
 ```
 
 **For more details, see:** [`MODEL_FORMATS.md`](./MODEL_FORMATS.md)
@@ -396,7 +450,7 @@ reviews_vllm/
 After generating reviews, use the evaluation script to extract numerical scores and perform statistical analysis:
 
 ```bash
-python evaluate_numerical_scores.py \
+python scripts/evaluation/evaluate_numerical_scores.py \
   --reviews_dir ./reviews_vllm \
   --output_dir ./evaluation_results
 ```
@@ -440,7 +494,9 @@ CycleReviewer soundness     50   2.750    2.900        0.150       2.123        
 - **p < 0.05**: Statistically significant difference
 - **Cohen's d**: Effect size (0.2=small, 0.5=medium, 0.8=large)
 
-**For complete documentation, see:** [`EVALUATION_GUIDE.md`](./EVALUATION_GUIDE.md)
+**For complete documentation, see:** [`EVALUATION_GUIDE.md`](./docs/guides/EVALUATION_GUIDE.md)
+
+**For visualization plots:** [`EVALUATION_PLOTS_GUIDE.md`](./docs/guides/EVALUATION_PLOTS_GUIDE.md)
 
 ## Step 4: Retry Failed Reviews (If Needed)
 
@@ -449,7 +505,7 @@ CycleReviewer soundness     50   2.750    2.900        0.150       2.123        
 If some reviews still fail after automatic retries, you can manually retry only the failed ones:
 
 ```bash
-python retry_failed_reviews.py \
+python scripts/review/retry_failed_reviews.py \
   --reviews_dir ./reviews_vllm \
   --csv_file ./data/filtered_pairs.csv \
   --vllm_endpoint "http://localhost:8000" \
@@ -477,7 +533,7 @@ python retry_failed_reviews.py \
 
 ```bash
 # Just check status without retrying
-python retry_failed_reviews.py \
+python scripts/review/retry_failed_reviews.py \
   --reviews_dir ./reviews_vllm \
   --csv_file ./data/filtered_pairs.csv \
   --vllm_endpoint "http://localhost:8000" \
@@ -493,7 +549,227 @@ Total issues: 8
 Unique papers needing retry: 6
 ```
 
-**For complete documentation, see:** [`RETRY_GUIDE.md`](./RETRY_GUIDE.md)
+**For complete documentation, see:** [`RETRY_GUIDE.md`](./docs/guides/RETRY_GUIDE.md)
+
+## Step 5: Compare AI vs Human Review Scores
+
+**NEW!** You can now compare AI-generated review scores against official human reviews from OpenReview.
+
+### Step 5a: Fetch Human Review Scores
+
+**Test first** (recommended):
+```bash
+python tests/test_fetch_human_scores.py
+```
+
+This quick test verifies the OpenReview API is working correctly.
+
+**Fetch scores:**
+```bash
+python scripts/utils/fetch_human_scores.py \
+  --csv_file ./data/ICLR2024_pairs/filtered_pairs.csv
+```
+
+This will:
+- Query OpenReview API v2 for each paper's submission with replies
+- Filter replies for official reviews (per [OpenReview API guide](https://docs.openreview.net/how-to-guides/data-retrieval-and-modification/how-to-get-all-notes-for-submissions-reviews-rebuttals-etc))
+- Extract numerical scores (soundness, presentation, contribution, rating)
+- Aggregate across multiple human reviewers (mean ± std)
+- Save to `filtered_pairs_with_human_scores.csv`
+
+**Troubleshooting:**
+If no reviews are found, use debug mode:
+```bash
+python scripts/utils/fetch_human_scores.py \
+  --csv_file ./data/ICLR2024_pairs/filtered_pairs.csv \
+  --limit 1 \
+  --debug
+```
+
+**Output example:**
+```
+Papers with human reviews: 122/125
+Average number of reviews per paper: 3.41
+
+Human score statistics (mean ± std):
+  Soundness: 2.87 ± 0.45
+  Presentation: 2.91 ± 0.52
+  Contribution: 2.78 ± 0.49
+  Rating: 6.43 ± 1.12
+```
+
+### Step 5b: Calculate MSE and MAE
+
+```bash
+python scripts/evaluation/calculate_mse_mae.py \
+  --csv_file ./data/ICLR2024_pairs/filtered_pairs_with_human_scores.csv \
+  --reviews_dir ./reviews_vllm_Llama3-1_70B_3_runs/ \
+  --output_dir ./ai_vs_human_evaluation/
+```
+
+This will:
+- Match AI and human scores by paper ID
+- Calculate MSE, MAE, RMSE, and correlation
+- Generate comparison plots
+- Save detailed results
+
+**Output files:**
+```
+ai_vs_human_evaluation/
+├── ai_vs_human_results.csv          # Summary: MAE, RMSE per metric
+├── ai_vs_human_detailed.csv         # All AI-Human score pairs
+├── ai_vs_human_results.json         # Complete statistics
+└── Plots:
+    ├── {model}_ai_vs_human_scatter.png       # Scatter plots with regression
+    ├── {model}_error_distributions.png       # Prediction error distributions
+    └── {model}_mae_rmse_comparison.png       # Bar chart across metrics
+```
+
+**Example results:**
+```
+SOUNDNESS:
+  Pairs: 366
+  Human: 2.87 ± 0.45
+  AI:    2.92 ± 0.38
+  MAE:   0.42    ← Average absolute difference
+  RMSE:  0.54    ← Root mean squared error
+  Correlation: 0.68  ← Agreement strength
+
+RATING:
+  Pairs: 366
+  Human: 6.43 ± 1.12
+  AI:    6.58 ± 0.89
+  MAE:   0.82
+  RMSE:  1.05
+  Correlation: 0.71
+```
+
+**Interpretation:**
+- **MAE < 0.5** → Good agreement for 1-4 scales
+- **MAE < 1.0** → Good agreement for 1-10 scales
+- **Correlation > 0.6** → Strong relationship
+- **Mean difference ≈ 0** → No systematic bias
+
+### Research Questions Answered
+
+1. **How accurate are AI reviewers?** → MAE/RMSE metrics
+2. **Does AI agree with human consensus?** → Correlation coefficient
+3. **Is AI systematically biased?** → Compare AI mean vs Human mean
+4. **Which metrics are hardest to predict?** → Compare MAE across metrics
+
+**For complete documentation, see:** [`AI_VS_HUMAN_GUIDE.md`](./docs/guides/AI_VS_HUMAN_GUIDE.md)
+
+## Step 6: Evaluate Consensus Flaw Detection
+
+**NEW!** Evaluate whether AI reviewers detect the consensus flaws (ground truth weaknesses from paper revisions).
+
+### Step 6a: Evaluate Flaw Detection
+
+```bash
+python scripts/evaluation/evaluate_flaw_detection.py \
+  --csv_file ./data/ICLR2024_pairs/filtered_pairs.csv \
+  --reviews_dir ./reviews_vllm_Llama3-1_70B_3_runs/ \
+  --evaluator_endpoint "http://localhost:8000" \
+  --evaluator_model "Qwen3-30B-A3B-Instruct-2507-FP8"
+```
+
+This will:
+- Load ground truth flaws from `flaw_descriptions` in CSV
+- Extract weaknesses from AI reviews
+- Use an evaluator LLM to check if each flaw is mentioned
+- Calculate **recall** = (flaws detected) / (total flaws)
+- Save detailed results including which specific flaws were detected
+
+**Output example:**
+```
+Papers with flaw descriptions: 122
+Evaluating papers: 100%|████████████| 122/122 [15:32<00:00,  7.64s/it]
+
+Overall Recall Statistics:
+  Mean recall: 0.652  ← AI detected 65% of consensus flaws
+  Std recall: 0.218
+
+By Version:
+  v1: Mean recall: 0.631
+  latest: Mean recall: 0.673  ← Slight improvement
+```
+
+**Output files:**
+```
+flaw_detection_results/
+├── flaw_detection_detailed.json    # Full results with reasoning per flaw
+├── flaw_detection_summary.csv      # Paper-level recall values
+└── flaw_detection_per_flaw.csv     # Individual flaw detection records
+```
+
+### Step 6b: Analyze with Paired t-Test
+
+```bash
+python scripts/evaluation/analyze_flaw_detection.py \
+  --results_file ./flaw_detection_results/flaw_detection_detailed.json \
+  --output_dir ./flaw_detection_analysis/
+```
+
+This will:
+- Compare v1 vs latest flaw detection recall
+- Perform paired t-test
+- Calculate effect size (Cohen's d)
+- Generate comparison plots
+
+**Example results:**
+```
+v1 Recall:     0.631 ± 0.224
+Latest Recall: 0.673 ± 0.211
+Difference:    0.042 ± 0.158
+95% CI: [0.014, 0.070]
+
+t-statistic: 2.941
+p-value: 0.0039 **  ← Highly significant!
+Cohen's d: 0.266 (small effect)
+
+✅ CONCLUSION: Paper revisions significantly improved the AI's ability
+   to detect consensus flaws (p=0.0039).
+```
+
+**Output files:**
+```
+flaw_detection_analysis/
+├── flaw_detection_ttest_results.json
+├── flaw_detection_comparison_summary.csv
+├── flaw_detection_paired_data.csv
+└── Plots:
+    ├── flaw_detection_bar_comparison.png       # Bar chart with significance
+    ├── flaw_detection_scatter.png              # v1 vs latest scatter
+    ├── flaw_detection_difference_distribution.png  ← Key plot!
+    └── flaw_detection_violin.png               # Distribution comparison
+```
+
+### How It Works
+
+The evaluator LLM receives:
+1. **Ground truth flaw** (from `flaw_descriptions`)
+2. **Weaknesses section** (from AI review)
+3. **Question:** Is the flaw mentioned in the weaknesses?
+
+It responds with:
+```json
+{
+  "detected": true,
+  "reasoning": "The weaknesses section mentions lack of multiple runs, 
+                which matches the ground truth flaw about single-run results."
+}
+```
+
+### Research Questions Answered
+
+1. **Do AI reviewers detect consensus flaws?** → Overall recall metric
+2. **Do revisions make flaws more detectable?** → Paired t-test (v1 vs latest)
+3. **Which flaws are hardest to detect?** → Per-flaw analysis
+4. **Are results consistent across runs?** → Standard deviation of recall
+
+**For complete documentation, see:** [`FLAW_DETECTION_GUIDE.md`](./docs/guides/FLAW_DETECTION_GUIDE.md)
+
+**Note:** The evaluator includes robust JSON sanitization to handle LLM output issues. See [`FLAW_DETECTION_JSON_FIX.md`](./docs/fixes/FLAW_DETECTION_JSON_FIX.md) for details.
 
 ## Key Arguments
 
@@ -555,7 +831,7 @@ The vLLM script includes **built-in automatic retry** for failed reviews:
 - **Still have failures?**
   - If a review fails after 3 attempts, it's saved with `success: false`
   - Use `retry_failed_reviews.py` to manually retry persistent failures
-  - Check [`RETRY_GUIDE.md`](./RETRY_GUIDE.md) for troubleshooting
+  - Check [`RETRY_GUIDE.md`](./docs/guides/RETRY_GUIDE.md) for troubleshooting
 
 **This feature significantly reduces the need for manual intervention** on transient JSON/parsing errors that are common with LLMs!
 

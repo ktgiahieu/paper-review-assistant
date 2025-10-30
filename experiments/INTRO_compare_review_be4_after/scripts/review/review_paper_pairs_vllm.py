@@ -44,6 +44,7 @@ MODEL_TIMEOUTS = {
     "SEA-E": 300,           # 5 minutes for single review
     "CycleReviewer": 900,   # 15 minutes for 4 reviewers
     "GenericStructured": 300,  # 5 minutes for single review
+    "CriticalNeurIPS": 600, # 10 minutes for critical analysis
     "default": 300          # 5 minutes default
 }
 
@@ -82,23 +83,23 @@ class PaperReview(BaseModel):
     weaknesses: List[str] = Field(
         description="A list of the paper's key weaknesses and limitations (3-5 points)."
     )
-    clarity_score: int = Field(
+    clarity_score: float = Field(
         description="Clarity and presentation quality score (1-10, where 10 is excellent).",
         ge=1, le=10
     )
-    novelty_score: int = Field(
+    novelty_score: float = Field(
         description="Novelty and originality score (1-10, where 10 is highly novel).",
         ge=1, le=10
     )
-    technical_quality_score: int = Field(
+    technical_quality_score: float = Field(
         description="Technical quality and correctness score (1-10, where 10 is rigorous and correct).",
         ge=1, le=10
     )
-    experimental_rigor_score: int = Field(
+    experimental_rigor_score: float = Field(
         description="Experimental evaluation rigor score (1-10, where 10 is comprehensive).",
         ge=1, le=10
     )
-    overall_score: int = Field(
+    overall_score: float = Field(
         description="Overall recommendation score (1-10, where 1 is strong reject and 10 is strong accept).",
         ge=1, le=10
     )
@@ -159,6 +160,41 @@ class GenericStructuredReview(BaseModel):
     recommendation: str = Field(description="Recommendation (Accept/Reject)")
     meta_review: str = Field(description="Overall assessment and rationale")
 
+class CriticalNeurIPSReview(BaseModel):
+    """Pydantic model for a comprehensive, critical NeurIPS-style review."""
+    summary: str = Field(
+        description="A brief, neutral summary of the paper and its contributions. This should not be a critique or a copy of the abstract."
+    )
+    strengths_and_weaknesses: str = Field(
+        description="A thorough assessment of the paper's strengths and weaknesses, touching on originality, quality, clarity, and significance. Use Markdown for formatting."
+    )
+    questions: str = Field(
+        description="A list of actionable questions and suggestions for the authors (ideally 3-5 key points). Frame questions to clarify points that could change the evaluation."
+    )
+    limitations_and_societal_impact: str = Field(
+        description="Assessment of whether limitations and potential negative societal impacts are adequately addressed. State 'Yes' if adequate; otherwise, provide constructive suggestions for improvement."
+    )
+    soundness: int = Field(
+        description="Numerical rating for the soundness of the technical claims, methodology, and whether claims are supported by evidence (4: excellent, 3: good, 2: fair, 1: poor).",
+        ge=1, le=4
+    )
+    presentation: int = Field(
+        description="Numerical rating for the quality of the presentation, including writing style, clarity, and contextualization (4: excellent, 3: good, 2: fair, 1: poor).",
+        ge=1, le=4
+    )
+    contribution: int = Field(
+        description="Numerical rating for the quality of the overall contribution, including the importance of the questions asked and the value of the results (4: excellent, 3: good, 2: fair, 1: poor).",
+        ge=1, le=4
+    )
+    overall_score: int = Field(
+        description="Overall recommendation score (10: Award quality, 9: Strong accept, 8: Accept, 7: Weak accept, 6: Marginally above acceptance, 5: Borderline, 4: Marginally below acceptance, 3: Reject, 2: Strong reject, 1: Trivial/wrong).",
+        ge=1, le=10
+    )
+    confidence: int = Field(
+        description="Confidence in the assessment (5: Certain, 4: Confident, 3: Fairly confident, 2: Willing to defend, 1: Educated guess).",
+        ge=1, le=5
+    )
+
 class ReviewPrompts:
     @staticmethod
     def detect_model_type(model_name: str, format_override: Optional[str] = None) -> str:
@@ -168,7 +204,7 @@ class ReviewPrompts:
         Args:
             model_name: Name of the model
             format_override: Optional format to use (overrides auto-detection)
-                            Options: "SEA-E", "CycleReviewer", "GenericStructured", "default"
+                            Options: "SEA-E", "CycleReviewer", "GenericStructured", "CriticalNeurIPS", "default"
         
         Returns:
             Model type string
@@ -181,6 +217,8 @@ class ReviewPrompts:
             return "SEA-E"
         elif "cyclereviewer" in model_name_lower or "cycle-reviewer" in model_name_lower or "cycle_reviewer" in model_name_lower:
             return "CycleReviewer"
+        elif "criticalneurips" in model_name_lower or "critical-neurips" in model_name_lower or "critical_neurips" in model_name_lower:
+            return "CriticalNeurIPS"
         # Add more model types here as needed
         return "default"
     
@@ -341,6 +379,22 @@ The JSON object must have the following structure:
 }
 
 Now provide your review in the exact JSON format specified above."""
+        elif model_type == "CriticalNeurIPS":
+            return """You are a top-tier academic reviewer for NeurIPS, known for writing exceptionally thorough, incisive, and constructive critiques. Your goal is to synthesize multiple expert perspectives into a single, coherent review that elevates the entire research field.
+
+When reviewing the paper, you must adopt a multi-faceted approach, simultaneously analyzing the work from the following critical angles:
+
+1.  **The Conceptual Critic & Historian**:
+    * **Question the Core Concepts**: Do not accept the authors' definitions at face value. Situate the paper within the broader scientific landscape by defining its core concepts from first principles, citing foundational literature.
+    * **Re-frame with Evidence**: If the authors' framing is weak, re-organize their ideas into a more insightful structure. Challenge their assumptions by citing counter-examples from published research.
+    * **Provide a Roadmap**: Use citations constructively to point authors toward literature they may have missed, helping them build a stronger conceptual foundation.
+
+2.  **The Methodological Skeptic & Forensic Examiner**:
+    * **Scrutinize the Methodology**: Forensically examine the experimental design, evaluation metrics, and statistical analysis. Are they appropriate for the claims being made?
+    * **Identify Critical Omissions**: What is *absent* from the paper? Look for ignored alternative hypotheses, unacknowledged limitations, or countervailing evidence that is not addressed.
+    * **Challenge Unstated Assumptions**: Articulate how unstated assumptions in the methodology could undermine the validity of the results and the paper's central claims.
+
+In short: your review must be a synthesis of these perspectives. You are not just checking for flaws; you are deeply engaging with the paper's ideas, challenging its foundations, questioning its methodology, and providing a clear, evidence-backed path for improvement. Your final review should be a masterclass in scholarly critique."""
         else:
             # Default JSON format
             return """You are an expert peer reviewer for a top-tier machine learning conference (NeurIPS, ICML, or ICLR). Your task is to provide a thorough, balanced, and constructive review of the submitted research paper.
@@ -355,8 +409,8 @@ You must provide your assessment in a specific JSON format with the following fi
 - summary: A 2-3 sentence overview of the paper
 - strengths: A list of key strengths (3-5 points as separate strings)
 - weaknesses: A list of key weaknesses (3-5 points as separate strings)
-- clarity_score: Score from 1-10
-- novelty_score: Score from 1-10
+- clarity_score: Score from 1-4
+- novelty_score: Score from 1-4
 - technical_quality_score: Score from 1-10
 - experimental_rigor_score: Score from 1-10
 - overall_score: Score from 1-10 (1=strong reject, 10=strong accept)
@@ -403,6 +457,33 @@ Please consider these issues in your assessment, but conduct your own independen
 {flaw_info}
 
 Provide your review as a JSON object following the exact format specified in the instructions above. Remember: ONLY output the JSON, no additional text."""
+        elif model_type == "CriticalNeurIPS":
+            return f"""Please review the following research paper with exceptional rigor and depth.
+
+<paper_content>
+{paper_content}
+</paper_content>
+{flaw_info}
+
+**Instructions:**
+1. Thoroughly read the entire paper.
+2. Adopt the comprehensive, critical persona described in your system instructions.
+3. Generate one complete review that fills all the fields in the required JSON format.
+4. Your response MUST be a single, valid JSON object. Do not include any text, markdown, or code formatting before or after the JSON object.
+
+**Required JSON Schema:**
+Generate a single JSON object with these keys:
+* "summary": (string) A brief, neutral summary of the paper and its contributions. Not a critique or copy of the abstract.
+* "strengths_and_weaknesses": (string) A thorough assessment of strengths and weaknesses, touching on originality, quality, clarity, and significance. Use Markdown formatting.
+* "questions": (string) A list of actionable questions and suggestions for authors (3-5 key points). Frame questions to clarify points that could change the evaluation.
+* "limitations_and_societal_impact": (string) Assessment of whether limitations and societal impacts are adequately addressed. State 'Yes' if adequate; otherwise, provide constructive suggestions.
+* "soundness": (integer) Rating for soundness of technical claims. Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
+* "presentation": (integer) Rating for presentation quality. Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
+* "contribution": (integer) Rating for overall contribution. Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
+* "overall_score": (integer) Overall recommendation. Must be 10, 9, 8, 7, 6, 5, 4, 3, 2, or 1. (10=Award quality, 8=Strong Accept, 6=Weak Accept, 5=Borderline, 4=Borderline reject, 2=Strong Reject)
+* "confidence": (integer) Confidence in assessment. Must be 5, 4, 3, 2, or 1. (5=Certain, 4=Confident, 3=Fairly confident, 2=Willing to defend, 1=Educated guess)
+
+Provide your complete review as a single JSON object."""
         else:
             return f"""Please review the following research paper ({paper_version}):
 
@@ -1320,6 +1401,65 @@ def review_single_paper_vllm(
                             "chars_per_token_used": chars_per_token_used
                         }
             
+            elif model_type == "CriticalNeurIPS":
+                # Parse CriticalNeurIPS JSON format
+                if verbose:
+                    _print_method(f"Worker {worker_id}: Parsing CriticalNeurIPS format for {paper_id} ({version_label}, run {run_id})")
+                
+                sanitized_json_content = _sanitize_json_string(raw_content)
+                
+                try:
+                    parsed_review = CriticalNeurIPSReview.model_validate_json(sanitized_json_content)
+                except Exception as e:
+                    _print_method(f"Worker {worker_id}: Pydantic validation failed for {paper_id} ({version_label}, run {run_id}). Error: {e}")
+                    _print_method(f"Worker {worker_id}: Raw JSON: {sanitized_json_content[:500]}...")
+                    
+                    # Try to salvage with basic JSON parsing
+                    try:
+                        fallback_data = json.loads(sanitized_json_content)
+                        _print_method(f"Worker {worker_id}: Fallback JSON parsing succeeded for {paper_id}")
+                    except:
+                        raise ValueError(f"CriticalNeurIPS validation failed: {e}")
+                    
+                    # Use fallback data
+                    review_data = {
+                        "summary": fallback_data.get("summary", ""),
+                        "strengths": fallback_data.get("strengths_and_weaknesses", "").split("\n\n")[0] if fallback_data.get("strengths_and_weaknesses") else "",
+                        "weaknesses": fallback_data.get("strengths_and_weaknesses", "").split("\n\n")[1] if len(fallback_data.get("strengths_and_weaknesses", "").split("\n\n")) > 1 else "",
+                        "questions": fallback_data.get("questions", ""),
+                        "soundness": fallback_data.get("soundness", 3),
+                        "presentation": fallback_data.get("presentation", 3),
+                        "contribution": fallback_data.get("contribution", 3),
+                        "rating": fallback_data.get("overall_score", 5),
+                        "confidence": fallback_data.get("confidence", 3),
+                        "limitations_and_societal_impact": fallback_data.get("limitations_and_societal_impact", ""),
+                        "paper_id": paper_id,
+                        "version": version_label,
+                        "run_id": run_id,
+                        "model_type": model_type,
+                        "success": False,  # Mark as partial success
+                        "raw_content": raw_content,
+                        "was_truncated": was_truncated,
+                        "chars_per_token_used": chars_per_token_used
+                    }
+                else:
+                    review_data = parsed_review.model_dump()
+                    
+                    # Map scores for compatibility with evaluation scripts
+                    review_data["rating"] = review_data.get("overall_score")
+                    # Note: soundness, presentation, contribution already match
+                    
+                    review_data["paper_id"] = paper_id
+                    review_data["version"] = version_label
+                    review_data["run_id"] = run_id
+                    review_data["model_type"] = model_type
+                    review_data["success"] = True
+                    review_data["raw_content"] = raw_content
+                    review_data["was_truncated"] = was_truncated
+                    review_data["chars_per_token_used"] = chars_per_token_used
+                
+                return review_data
+            
             else:
                 # Parse JSON format (default)
                 sanitized_json_content = _sanitize_json_string(raw_content)
@@ -1327,6 +1467,14 @@ def review_single_paper_vllm(
                 try:
                     parsed_review = PaperReview.model_validate_json(sanitized_json_content)
                     review_data = parsed_review.model_dump()
+                    
+                    # Add score mappings for evaluate_numerical_scores.py compatibility
+                    # Map default format to standard format expected by evaluator
+                    review_data["soundness"] = review_data.get("technical_quality_score")  # Technical quality -> soundness
+                    review_data["presentation"] = review_data.get("clarity_score")  # Clarity -> presentation
+                    review_data["contribution"] = review_data.get("novelty_score")  # Novelty -> contribution
+                    review_data["rating"] = review_data.get("overall_score")  # Overall score -> rating
+                    
                     review_data["paper_id"] = paper_id
                     review_data["version"] = version_label
                     review_data["run_id"] = run_id
@@ -1342,6 +1490,13 @@ def review_single_paper_vllm(
                     
                     try:
                         fallback_data = json.loads(sanitized_json_content)
+                        
+                        # Add score mappings for evaluate_numerical_scores.py compatibility
+                        fallback_data["soundness"] = fallback_data.get("technical_quality_score")
+                        fallback_data["presentation"] = fallback_data.get("clarity_score")
+                        fallback_data["contribution"] = fallback_data.get("novelty_score")
+                        fallback_data["rating"] = fallback_data.get("overall_score")
+                        
                         fallback_data["paper_id"] = paper_id
                         fallback_data["version"] = version_label
                         fallback_data["run_id"] = run_id
@@ -1550,8 +1705,8 @@ def main():
     parser.add_argument("--model_name", type=str, required=True,
                        help="Model name hosted on vLLM server.")
     parser.add_argument("--format", type=str, default=None, dest="format_override",
-                       choices=["SEA-E", "CycleReviewer", "GenericStructured", "default"],
-                       help="Override model format detection. Options: SEA-E, CycleReviewer, GenericStructured, default.")
+                       choices=["SEA-E", "CycleReviewer", "GenericStructured", "CriticalNeurIPS", "default"],
+                       help="Override model format detection. Options: SEA-E, CycleReviewer, GenericStructured, CriticalNeurIPS, default.")
     parser.add_argument("--max_workers", type=int, default=3,
                        help="Max worker threads for concurrent processing.")
     parser.add_argument("--max_figures", type=int, default=5,

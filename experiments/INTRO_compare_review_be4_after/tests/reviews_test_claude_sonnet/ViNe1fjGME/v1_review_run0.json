@@ -1,0 +1,35 @@
+{
+  "summary": "This paper proposes TGC, a framework for deep temporal graph clustering that adapts traditional static graph clustering techniques (node assignment distribution and adjacency matrix reconstruction) to the batch-processing pattern of temporal graphs. The authors discuss differences between temporal and static graph clustering, introduce two new datasets (arXivAI and arXivCS), and demonstrate that TGC can improve clustering performance while reducing memory requirements compared to static methods.",
+  "strengths": [
+    "Addresses an important and understudied problem of clustering in temporal graphs, providing a comprehensive discussion of differences from static graph clustering",
+    "Proposes practical solutions to adapt classical clustering modules (node-level distribution and batch-level reconstruction) to temporal graphs without requiring full adjacency matrices",
+    "Demonstrates significant memory efficiency advantages over static methods with empirical validation, showing the framework can handle large-scale graphs that cause OOM errors in baseline methods",
+    "Contributes two new large-scale datasets (arXivAI and arXivCS) for temporal graph clustering research, addressing a key limitation in the field",
+    "Shows transferability of the framework across multiple temporal graph learning methods (HTNE, TGN, TREND), demonstrating generality"
+  ],
+  "weaknesses": [
+    "Limited novelty in core technical contributions - the main components (Hawkes process from HTNE, Student's t-distribution, cosine similarity) are borrowed from existing work without significant innovation",
+    "The batch-level reconstruction module is acknowledged as a 'pseudo-reconstruction' that doesn't fully restore adjacency matrix reconstruction, potentially limiting effectiveness",
+    "Experimental results show inconsistent performance across datasets - TGC doesn't always achieve best results and sometimes underperforms simpler baselines (e.g., DFCN on Brain dataset)",
+    "The paper relies heavily on node2vec pre-training for initial features, which adds computational overhead and makes the method less end-to-end",
+    "Writing quality issues including verbose explanations, relegating important content to appendix due to space constraints, and some claims lacking rigorous theoretical justification (e.g., complexity analysis is informal)",
+    "Limited analysis of when and why the method works - lacks ablation studies on individual components and deeper investigation into failure cases"
+  ],
+  "clarity_score": 6,
+  "novelty_score": 5,
+  "technical_quality_score": 6,
+  "experimental_rigor_score": 6,
+  "overall_score": 6,
+  "confidence": 4,
+  "recommendation": "Weak Accept",
+  "detailed_comments": "This paper tackles an important problem of temporal graph clustering with practical solutions. While the technical novelty is limited (mostly adapting existing techniques), the work provides value through comprehensive problem analysis, new datasets, and demonstration of memory efficiency. The experimental evaluation is reasonably thorough but shows inconsistent results. The paper would benefit from: (1) deeper ablation studies to understand component contributions, (2) theoretical analysis of when the approach is expected to work, (3) improved writing to better highlight contributions, and (4) more rigorous comparison of time/space complexity trade-offs. The work makes a solid contribution to an underexplored area but falls short of being a strong accept due to limited technical innovation and mixed experimental results.",
+  "paper_id": "ViNe1fjGME",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": true,
+  "soundness": 6,
+  "presentation": 6,
+  "contribution": 5,
+  "rating": 6
+}

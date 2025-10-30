@@ -1,0 +1,34 @@
+{
+  "summary": "This paper proposes TGC, a framework for deep temporal graph clustering that adapts clustering techniques to the interaction sequence-based batch-processing pattern of temporal graphs. The authors discuss fundamental differences between temporal and static graph clustering, propose two clustering modules (node-level distribution and batch-level reconstruction), and validate their approach on multiple datasets with comparisons to existing methods.",
+  "strengths": [
+    "Well-motivated problem: The paper clearly articulates the conceptual differences between temporal and static graph clustering through intuitive examples (Figure 1), establishing a clear research gap.",
+    "Comprehensive dataset contribution: The authors address the scarcity of temporal graph clustering benchmarks by curating and developing six datasets (DBLP, Brain, Patent, School, arXivAI, arXivCS), which is valuable for the community.",
+    "Practical efficiency analysis: The memory usage study (Figure 2) and complexity analysis effectively demonstrate the practical advantages of temporal methods over static approaches, showing 30-50x memory savings on large-scale datasets.",
+    "Transferability demonstration: The framework's applicability across multiple temporal graph methods (HTNE, TGN, TREND) suggests generality and practical utility.",
+    "Comprehensive experimental evaluation: The paper includes extensive experiments with multiple baselines, ablation studies, and parameter sensitivity analysis across different dataset types."
+  ],
+  "weaknesses": [
+    "Limited technical novelty: The proposed modules are relatively straightforward combinations of existing techniques. The node-level distribution uses standard Student's t-distribution clustering (from DEC), and batch-level reconstruction is a simple cosine similarity constraint without substantial innovation.",
+    "Weak theoretical justification: The paper lacks rigorous theoretical analysis for why the proposed batch-level reconstruction is appropriate for temporal graphs. The claim that it 'simulates adjacency relationships' without increasing complexity needs more rigorous justification.",
+    "Inconsistent experimental results: TGC does not consistently outperform baselines across all metrics. On several datasets (Brain, Patent, arXivCS), improvements are marginal or TGC ranks below other methods on specific metrics, weakening claims of superiority.",
+    "Methodological concerns: (1) Using K-means for evaluation with pre-computed cluster numbers, which doesn't address the practical challenge of unknown cluster numbers; (2) Initial features from node2vec appear arbitrary - the authors acknowledge this but don't provide sufficient justification; (3) The comparison between static and temporal methods is somewhat unfair as static methods weren't designed for the batch-processing scenario.",
+    "Presentation and clarity issues: (1) Heavy notation in mathematical formulations makes the paper dense; (2) Figure 1 is referenced but empty in the provided content; (3) The distinction between temporal and discrete-time dynamic graphs could be clearer earlier in the paper; (4) Some experimental details are deferred to appendix, making the main paper incomplete."
+  ],
+  "clarity_score": 6,
+  "novelty_score": 5,
+  "technical_quality_score": 5,
+  "experimental_rigor_score": 7,
+  "overall_score": 5,
+  "confidence": 3,
+  "recommendation": "Weak Reject",
+  "detailed_comments": "While the paper addresses an important and under-explored problem of temporal graph clustering with a clear motivation and comprehensive experiments, the technical contributions are limited. The proposed clustering modules are straightforward applications of existing techniques without substantial innovation. The experimental results, though extensive, do not convincingly demonstrate consistent superiority over baselines across all metrics and datasets. The practical contributions (datasets and efficiency analysis) are valuable, but insufficient to offset the limited methodological novelty. The paper would benefit from: (1) more sophisticated clustering modules tailored to temporal graphs, (2) stronger theoretical analysis, (3) more thorough investigation of why consistency improvements aren't observed, and (4) clearer presentation of key concepts.",
+  "paper_id": "ViNe1fjGME",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": true,
+  "soundness": 5,
+  "presentation": 6,
+  "contribution": 5,
+  "rating": 5
+}

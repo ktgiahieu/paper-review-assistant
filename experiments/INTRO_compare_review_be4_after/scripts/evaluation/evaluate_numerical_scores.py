@@ -25,6 +25,8 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 from collections import defaultdict
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def extract_numerical_value(score_str: str) -> Optional[float]:
     """
@@ -95,14 +97,23 @@ def extract_scores_generic_structured(review_data: dict) -> Dict[str, Optional[f
     return scores
 
 def extract_scores_default(review_data: dict) -> Dict[str, Optional[float]]:
-    """Extract numerical scores from default format review."""
-    # Default format uses different field names
-    scores = {
-        'soundness': None,  # Not in default format
-        'presentation': None,  # Not in default format
-        'contribution': None,  # Not in default format
-        'rating': review_data.get('overall_score')  # Use overall_score as rating
-    }
+    """Extract numerical scores from default/Anthropic format review."""
+    # Check if review has already-mapped fields (from review_paper_pairs.py)
+    if 'soundness' in review_data and review_data['soundness'] is not None:
+        scores = {
+            'soundness': review_data.get('soundness'),
+            'presentation': review_data.get('presentation'),
+            'contribution': review_data.get('contribution'),
+            'rating': review_data.get('rating')
+        }
+    else:
+        # Fallback: try to map from original field names
+        scores = {
+            'soundness': review_data.get('technical_quality_score'),
+            'presentation': review_data.get('clarity_score'),
+            'contribution': review_data.get('novelty_score'),
+            'rating': review_data.get('overall_score')
+        }
     return scores
 
 def extract_scores_from_review(review_file: Path) -> List[Dict]:
@@ -302,8 +313,8 @@ def compute_paired_statistics(df: pd.DataFrame, metric: str) -> Dict:
     
     results = {
         'metric': metric,
-        'n_pairs': len(pivot_complete),
-        'n_papers': pivot_complete['paper_id'].nunique(),
+        'n_pairs': int(len(pivot_complete)),
+        'n_papers': int(pivot_complete['paper_id'].nunique()),
         'v1_mean': float(np.mean(v1_scores)),
         'v1_std': float(np.std(v1_scores, ddof=1)),
         'latest_mean': float(np.mean(latest_scores)),
@@ -315,8 +326,8 @@ def compute_paired_statistics(df: pd.DataFrame, metric: str) -> Dict:
         'cohens_d': float(cohens_d),
         'ci_95_lower': float(ci_95[0]),
         'ci_95_upper': float(ci_95[1]),
-        'significant_at_0.05': p_value < 0.05,
-        'significant_at_0.01': p_value < 0.01,
+        'significant_at_0.05': bool(p_value < 0.05),
+        'significant_at_0.01': bool(p_value < 0.01),
         'interpretation': interpret_results(mean_diff, p_value, cohens_d)
     }
     
@@ -462,6 +473,363 @@ def analyze_cyclereviewer_agreement(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     
     return agreement_df
 
+def create_comparison_plots(df: pd.DataFrame, results_by_model: Dict, output_dir: Path):
+    """
+    Create publication-quality plots for score comparisons.
+    
+    Generates:
+    1. Bar plot comparing v1 vs latest scores
+    2. Scatter plots with regression lines
+    3. Distribution plots (violin plots)
+    4. Effect size visualization
+    """
+    # Set style
+    sns.set_style("whitegrid")
+    plt.rcParams['figure.dpi'] = 150
+    plt.rcParams['savefig.dpi'] = 300
+    plt.rcParams['font.size'] = 10
+    
+    metrics = ['soundness', 'presentation', 'contribution', 'rating']
+    metric_labels = {
+        'soundness': 'Soundness',
+        'presentation': 'Presentation',
+        'contribution': 'Contribution',
+        'rating': 'Overall Rating'
+    }
+    
+    for model_type in df['model_type'].unique():
+        df_model = df[df['model_type'] == model_type]
+        model_results = results_by_model.get(model_type, {})
+        
+        # Skip if no valid results
+        if not model_results or all('error' in r for r in model_results.values()):
+            continue
+        
+        print(f"\nGenerating plots for {model_type}...")
+        
+        # Aggregate scores (average across reviewers and runs)
+        df_agg = df_model.groupby(['paper_id', 'version'])[metrics].mean().reset_index()
+        
+        # 1. Bar plot: v1 vs latest comparison
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f'{model_type}: Score Comparison (v1 vs Latest)', fontsize=14, fontweight='bold')
+        
+        for idx, metric in enumerate(metrics):
+            ax = axes[idx // 2, idx % 2]
+            
+            # Get mean and std for each version
+            v1_data = df_agg[df_agg['version'] == 'v1'][metric].dropna()
+            latest_data = df_agg[df_agg['version'] == 'latest'][metric].dropna()
+            
+            if len(v1_data) == 0 or len(latest_data) == 0:
+                continue
+            
+            x_pos = [0, 1]
+            means = [v1_data.mean(), latest_data.mean()]
+            stds = [v1_data.std(), latest_data.std()]
+            
+            bars = ax.bar(x_pos, means, yerr=stds, capsize=5, 
+                         color=['#3498db', '#e74c3c'], alpha=0.7, edgecolor='black')
+            
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(['v1', 'Latest'])
+            ax.set_ylabel('Score')
+            ax.set_title(metric_labels[metric])
+            ax.set_ylim(bottom=0)
+            
+            # Add significance stars if applicable
+            result = model_results.get(metric, {})
+            if 'p_value' in result:
+                p_val = result['p_value']
+                if p_val < 0.001:
+                    sig_text = '***'
+                elif p_val < 0.01:
+                    sig_text = '**'
+                elif p_val < 0.05:
+                    sig_text = '*'
+                else:
+                    sig_text = 'ns'
+                
+                y_max = max(means) + max(stds) * 1.1
+                ax.plot([0, 1], [y_max, y_max], 'k-', linewidth=1)
+                ax.text(0.5, y_max * 1.02, sig_text, ha='center', fontsize=12, fontweight='bold')
+        
+        plt.tight_layout()
+        plot_path = output_dir / f"{model_type}_bar_comparison.png"
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {plot_path}")
+        
+        # 2. Scatter plots: v1 vs latest
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f'{model_type}: v1 vs Latest Scatter Plots', fontsize=14, fontweight='bold')
+        
+        for idx, metric in enumerate(metrics):
+            ax = axes[idx // 2, idx % 2]
+            
+            # Pivot to get paired data
+            pivot = df_agg.pivot_table(
+                index='paper_id',
+                columns='version',
+                values=metric
+            )
+            
+            if 'v1' not in pivot.columns or 'latest' not in pivot.columns:
+                continue
+            
+            pivot_clean = pivot.dropna()
+            
+            if len(pivot_clean) == 0:
+                continue
+            
+            v1_scores = pivot_clean['v1']
+            latest_scores = pivot_clean['latest']
+            
+            # Scatter plot
+            ax.scatter(v1_scores, latest_scores, alpha=0.5, s=30, color='#3498db')
+            
+            # Diagonal line (no change)
+            min_val = min(v1_scores.min(), latest_scores.min())
+            max_val = max(v1_scores.max(), latest_scores.max())
+            ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.3, linewidth=1)
+            
+            # Regression line
+            if len(v1_scores) > 1:
+                z = np.polyfit(v1_scores, latest_scores, 1)
+                p = np.poly1d(z)
+                ax.plot(v1_scores.sort_values(), p(v1_scores.sort_values()), 
+                       'r-', alpha=0.8, linewidth=2, label=f'y={z[0]:.2f}x+{z[1]:.2f}')
+            
+            ax.set_xlabel('v1 Score')
+            ax.set_ylabel('Latest Score')
+            ax.set_title(metric_labels[metric])
+            ax.legend(loc='upper left', fontsize=8)
+            ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plot_path = output_dir / f"{model_type}_scatter_plots.png"
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {plot_path}")
+        
+        # 3. Violin plots: Distribution comparison
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f'{model_type}: Score Distributions', fontsize=14, fontweight='bold')
+        
+        for idx, metric in enumerate(metrics):
+            ax = axes[idx // 2, idx % 2]
+            
+            plot_data = df_agg[df_agg[metric].notna()][['version', metric]]
+            
+            if len(plot_data) == 0:
+                continue
+            
+            # Violin plot
+            parts = ax.violinplot(
+                [plot_data[plot_data['version'] == 'v1'][metric],
+                 plot_data[plot_data['version'] == 'latest'][metric]],
+                positions=[0, 1],
+                showmeans=True,
+                showmedians=True
+            )
+            
+            # Color the violins
+            for i, pc in enumerate(parts['bodies']):
+                pc.set_facecolor(['#3498db', '#e74c3c'][i])
+                pc.set_alpha(0.7)
+            
+            ax.set_xticks([0, 1])
+            ax.set_xticklabels(['v1', 'Latest'])
+            ax.set_ylabel('Score')
+            ax.set_title(metric_labels[metric])
+            ax.grid(True, alpha=0.3, axis='y')
+        
+        plt.tight_layout()
+        plot_path = output_dir / f"{model_type}_violin_plots.png"
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {plot_path}")
+        
+        # 4. Effect size and p-value visualization
+        effect_data = []
+        for metric in metrics:
+            result = model_results.get(metric, {})
+            if 'cohens_d' in result:
+                effect_data.append({
+                    'Metric': metric_labels[metric],
+                    "Cohen's d": result['cohens_d'],
+                    'p-value': result['p_value'],
+                    'Significant': result['significant_at_0.05']
+                })
+        
+        if effect_data:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+            fig.suptitle(f'{model_type}: Effect Sizes and Statistical Significance', 
+                        fontsize=14, fontweight='bold')
+            
+            effect_df = pd.DataFrame(effect_data)
+            
+            # Effect size plot
+            colors = ['#e74c3c' if d < 0 else '#2ecc71' for d in effect_df["Cohen's d"]]
+            bars = ax1.barh(effect_df['Metric'], effect_df["Cohen's d"], color=colors, alpha=0.7, edgecolor='black')
+            ax1.axvline(x=0, color='black', linestyle='-', linewidth=0.8)
+            ax1.axvline(x=0.2, color='gray', linestyle='--', alpha=0.5, linewidth=0.8, label='Small (0.2)')
+            ax1.axvline(x=0.5, color='gray', linestyle='--', alpha=0.5, linewidth=0.8, label='Medium (0.5)')
+            ax1.axvline(x=0.8, color='gray', linestyle='--', alpha=0.5, linewidth=0.8, label='Large (0.8)')
+            ax1.axvline(x=-0.2, color='gray', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax1.axvline(x=-0.5, color='gray', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax1.axvline(x=-0.8, color='gray', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax1.set_xlabel("Cohen's d (Effect Size)")
+            ax1.set_title("Effect Size")
+            ax1.legend(loc='lower right', fontsize=8)
+            ax1.grid(True, alpha=0.3, axis='x')
+            
+            # P-value plot
+            colors = ['#2ecc71' if s else '#95a5a6' for s in effect_df['Significant']]
+            bars = ax2.barh(effect_df['Metric'], -np.log10(effect_df['p-value']), 
+                           color=colors, alpha=0.7, edgecolor='black')
+            ax2.axvline(x=-np.log10(0.05), color='red', linestyle='--', linewidth=1, label='p=0.05')
+            ax2.axvline(x=-np.log10(0.01), color='darkred', linestyle='--', linewidth=1, label='p=0.01')
+            ax2.set_xlabel('-log10(p-value)')
+            ax2.set_title('Statistical Significance')
+            ax2.legend(loc='lower right', fontsize=8)
+            ax2.grid(True, alpha=0.3, axis='x')
+            
+            plt.tight_layout()
+            plot_path = output_dir / f"{model_type}_effect_sizes.png"
+            plt.savefig(plot_path, bbox_inches='tight')
+            plt.close()
+            print(f"  Saved: {plot_path}")
+        
+        # 5. Score change heatmap (per paper)
+        pivot_data = {}
+        for metric in metrics:
+            pivot = df_agg.pivot_table(
+                index='paper_id',
+                columns='version',
+                values=metric
+            )
+            if 'v1' in pivot.columns and 'latest' in pivot.columns:
+                pivot_data[metric] = pivot['latest'] - pivot['v1']
+        
+        if pivot_data:
+            changes_df = pd.DataFrame(pivot_data)
+            
+            if len(changes_df) > 0:
+                fig, ax = plt.subplots(figsize=(8, max(6, len(changes_df) * 0.15)))
+                
+                # Sort by average change
+                changes_df['avg_change'] = changes_df.mean(axis=1)
+                changes_df_sorted = changes_df.sort_values('avg_change').drop('avg_change', axis=1)
+                
+                # Limit to top/bottom papers if too many
+                if len(changes_df_sorted) > 50:
+                    top_bottom = pd.concat([
+                        changes_df_sorted.head(25),
+                        changes_df_sorted.tail(25)
+                    ])
+                    changes_df_sorted = top_bottom
+                
+                # Rename columns for display
+                changes_df_sorted.columns = [metric_labels[m] for m in changes_df_sorted.columns]
+                
+                sns.heatmap(changes_df_sorted, cmap='RdYlGn', center=0, 
+                           cbar_kws={'label': 'Score Change (Latest - v1)'},
+                           linewidths=0.5, linecolor='gray', ax=ax)
+                
+                ax.set_title(f'{model_type}: Score Changes per Paper\n(Latest - v1)', 
+                           fontsize=12, fontweight='bold')
+                ax.set_xlabel('Metric')
+                ax.set_ylabel('Paper ID')
+                
+                plt.tight_layout()
+                plot_path = output_dir / f"{model_type}_heatmap_changes.png"
+                plt.savefig(plot_path, bbox_inches='tight')
+                plt.close()
+                print(f"  Saved: {plot_path}")
+        
+        # 6. Distribution of Differences (key for paired t-test interpretation)
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f'{model_type}: Distribution of Score Differences (Latest - v1)', 
+                    fontsize=14, fontweight='bold')
+        
+        for idx, metric in enumerate(metrics):
+            ax = axes[idx // 2, idx % 2]
+            
+            # Get paired differences
+            pivot = df_agg.pivot_table(
+                index='paper_id',
+                columns='version',
+                values=metric
+            )
+            
+            if 'v1' not in pivot.columns or 'latest' not in pivot.columns:
+                continue
+            
+            pivot_clean = pivot.dropna()
+            
+            if len(pivot_clean) == 0:
+                continue
+            
+            differences = pivot_clean['latest'] - pivot_clean['v1']
+            
+            # Histogram with KDE
+            ax.hist(differences, bins=20, alpha=0.6, color='#3498db', edgecolor='black', density=True)
+            
+            # KDE overlay
+            from scipy.stats import gaussian_kde
+            if len(differences) > 1:
+                kde = gaussian_kde(differences)
+                x_range = np.linspace(differences.min(), differences.max(), 100)
+                ax.plot(x_range, kde(x_range), 'r-', linewidth=2, label='KDE')
+            
+            # Vertical line at zero (null hypothesis)
+            ax.axvline(x=0, color='black', linestyle='--', linewidth=2, label='H₀: Δ=0')
+            
+            # Mean difference line
+            mean_diff = differences.mean()
+            ax.axvline(x=mean_diff, color='red', linestyle='-', linewidth=2, 
+                      label=f'Mean Δ={mean_diff:.3f}')
+            
+            # Confidence interval
+            result = model_results.get(metric, {})
+            if 'ci_95_lower' in result and 'ci_95_upper' in result:
+                ci_lower = result['ci_95_lower']
+                ci_upper = result['ci_95_upper']
+                ax.axvspan(ci_lower, ci_upper, alpha=0.2, color='green', 
+                          label=f'95% CI')
+            
+            # Add text box with statistics
+            result_text = f"n = {len(differences)}"
+            if 'p_value' in result:
+                p_val = result['p_value']
+                if p_val < 0.001:
+                    result_text += f"\np < 0.001***"
+                elif p_val < 0.01:
+                    result_text += f"\np = {p_val:.3f}**"
+                elif p_val < 0.05:
+                    result_text += f"\np = {p_val:.3f}*"
+                else:
+                    result_text += f"\np = {p_val:.3f} (ns)"
+                
+                result_text += f"\nd = {result.get('cohens_d', 0):.3f}"
+            
+            ax.text(0.02, 0.98, result_text, transform=ax.transAxes,
+                   verticalalignment='top', bbox=dict(boxstyle='round', 
+                   facecolor='wheat', alpha=0.5), fontsize=9)
+            
+            ax.set_xlabel('Score Difference (Latest - v1)')
+            ax.set_ylabel('Density')
+            ax.set_title(metric_labels[metric])
+            ax.legend(loc='upper right', fontsize=8)
+            ax.grid(True, alpha=0.3, axis='y')
+        
+        plt.tight_layout()
+        plot_path = output_dir / f"{model_type}_difference_distributions.png"
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {plot_path}")
+
 def main():
     parser = argparse.ArgumentParser(
         description="Extract and analyze numerical scores from paper reviews"
@@ -549,6 +917,19 @@ def main():
             agreement_df.to_csv(agreement_file, index=False)
             print(f"\nSaved CycleReviewer agreement analysis to: {agreement_file}")
     
+    # Step 5: Generate plots
+    print("\n" + "="*80)
+    print("Step 5: Generating visualization plots...")
+    print("="*80)
+    
+    try:
+        create_comparison_plots(df_scores, results_by_model, output_dir)
+        print("\n✅ Plots generated successfully!")
+    except Exception as e:
+        print(f"\n⚠️  Warning: Failed to generate some plots: {e}")
+        import traceback
+        traceback.print_exc()
+    
     print("\n" + "="*80)
     print("✅ Evaluation complete!")
     print("="*80)
@@ -558,6 +939,15 @@ def main():
     print(f"  - {args.output_prefix}_detailed_results.json (full statistics)")
     if 'CycleReviewer' in df_scores['model_type'].values:
         print(f"  - {args.output_prefix}_cyclereviewer_agreement.csv (inter-reviewer agreement)")
+    print(f"\nVisualization plots:")
+    for model_type in df_scores['model_type'].unique():
+        print(f"  {model_type}:")
+        print(f"    - {model_type}_bar_comparison.png")
+        print(f"    - {model_type}_scatter_plots.png")
+        print(f"    - {model_type}_violin_plots.png")
+        print(f"    - {model_type}_effect_sizes.png")
+        print(f"    - {model_type}_heatmap_changes.png")
+        print(f"    - {model_type}_difference_distributions.png (paired t-test visualization)")
 
 if __name__ == "__main__":
     main()

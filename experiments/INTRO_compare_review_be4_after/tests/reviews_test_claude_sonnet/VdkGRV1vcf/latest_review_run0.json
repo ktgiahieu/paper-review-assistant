@@ -1,0 +1,34 @@
+{
+  "summary": "This paper introduces generative sliced MMD flows with Riesz kernels for efficient generative modeling. The key contribution is proving that MMD with Riesz kernels coincides with sliced MMD, enabling efficient computation via 1D projections and sorting algorithms that reduce complexity from O(MN+N²) to O((M+N)log(M+N)). The authors demonstrate their approach on image generation tasks (MNIST, FashionMNIST, CIFAR10, CelebA) by training neural networks to approximate MMD particle flows.",
+  "strengths": [
+    "Strong theoretical contributions: The equivalence between sliced and unsliced MMD for Riesz kernels (Theorem 1) is elegant and enables significant computational speedups",
+    "Novel sorting algorithm (Theorem 3) provides efficient gradient computation with clear complexity analysis and practical implementation details",
+    "Rigorous error analysis showing O(√(d/P)) convergence rate for the stochastic gradient approximation with finite projections (Theorem 4)",
+    "Comprehensive experimental validation on multiple datasets with competitive FID scores, particularly strong results on MNIST (3.1) and FashionMNIST (11.3)",
+    "Clear connection established between MMD and Wasserstein-1 distance (Theorem 2), providing theoretical insights into the method's behavior"
+  ],
+  "weaknesses": [
+    "Limited novelty in the generative modeling approach itself - the sequential network training is conceptually similar to existing methods, with the main novelty being the efficient MMD computation",
+    "Scalability concerns: The approach requires O(d²(N+M)log(N+M)) complexity for fixed error, which may be problematic for very high dimensions despite improvements over naive methods",
+    "Lack of batching capability is acknowledged as a limitation but significantly impacts practical applicability for large-scale problems",
+    "Results on CIFAR10 (FID 54.8) and CelebA (FID 32.1) are competitive but not state-of-the-art, with the method requiring pyramidal schedules and local projections (introducing inductive biases not fully theoretically justified)",
+    "The restriction to Riesz kernels with r∈(0,2) limits flexibility compared to general kernel methods, and the paper does not thoroughly explore performance across different values of r"
+  ],
+  "clarity_score": 8,
+  "novelty_score": 7,
+  "technical_quality_score": 9,
+  "experimental_rigor_score": 7,
+  "overall_score": 7,
+  "confidence": 4,
+  "recommendation": "Accept",
+  "detailed_comments": "This is a well-executed paper that makes solid theoretical contributions to computational optimal transport and generative modeling. The main theoretical results (Theorems 1-4) are rigorous and provide genuine insights. The sorting algorithm is clever and the error analysis is thorough. The experimental results demonstrate practical viability, though they are not groundbreaking in terms of sample quality. The writing is generally clear, though dense in places, and the paper includes comprehensive appendices. The main concern is that while the computational improvements are significant, the overall generative modeling approach is somewhat incremental, combining existing ideas (sliced distances, particle flows, sequential network training) with the new efficient MMD computation. The lack of batching and the need for problem-specific tricks (pyramidal schedules, local projections) on harder datasets suggest practical limitations. Nevertheless, the theoretical contributions are strong enough to warrant acceptance, and the method shows promise for applications where MMD-based flows are preferred over other generative approaches.",
+  "paper_id": "VdkGRV1vcf",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": true,
+  "soundness": 9,
+  "presentation": 8,
+  "contribution": 7,
+  "rating": 7
+}

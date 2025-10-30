@@ -152,6 +152,26 @@ abc123,v1,0,rating,4,5.5,0.577,5.0,6.0,1.0
 ...
 ```
 
+### 5. Visualization Plots
+
+**NEW!** The script automatically generates publication-quality plots for each model type:
+
+1. **`{model}_bar_comparison.png`** - Bar plots comparing v1 vs latest with significance stars
+2. **`{model}_scatter_plots.png`** - Scatter plots showing v1 vs latest relationship with regression lines
+3. **`{model}_violin_plots.png`** - Distribution plots showing score spreads
+4. **`{model}_effect_sizes.png`** - Effect size (Cohen's d) and p-value visualization
+5. **`{model}_heatmap_changes.png`** - Heatmap showing per-paper score changes
+6. **`{model}_difference_distributions.png`** - **⭐ KEY: Distribution of differences (what paired t-test analyzes)**
+
+**Features:**
+- 📊 300 DPI publication-ready quality
+- 🎨 Professional color schemes
+- ✅ Significance indicators (*, **, ***)
+- 📈 Multiple perspectives on the same data
+- 🎯 **Direct paired t-test visualization** (difference distributions with CI)
+
+**See [`EVALUATION_PLOTS_GUIDE.md`](./EVALUATION_PLOTS_GUIDE.md) for complete plotting documentation.**
+
 ## Statistical Analysis
 
 ### Paired t-Test

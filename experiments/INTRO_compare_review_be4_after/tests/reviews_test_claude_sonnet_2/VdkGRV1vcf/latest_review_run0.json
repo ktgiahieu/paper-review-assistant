@@ -1,0 +1,8 @@
+{
+  "error": "All API attempts failed for VdkGRV1vcf (latest). Last error: BadRequestError - Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CUcgQe4xTNUpA4DDU8khR'}",
+  "paper_id": "VdkGRV1vcf",
+  "version": "latest",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": false
+}

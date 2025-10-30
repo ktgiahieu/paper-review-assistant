@@ -1,0 +1,33 @@
+{
+  "summary": "This paper proposes generative models based on Maximum Mean Discrepancy (MMD) flows with Riesz kernels. The key insight is that for Riesz kernels, the sliced MMD coincides with the standard MMD, enabling efficient computation through one-dimensional projections. The authors develop a sorting algorithm for gradient computation with O((M+N)log(M+N)) complexity and prove O(√(d/P)) approximation error for stochastic gradient estimators. They demonstrate the approach on image generation tasks (MNIST, FashionMNIST, CIFAR10) by training neural networks to approximate MMD particle flows.",
+  "strengths": [
+    "Strong theoretical contributions: The paper provides rigorous mathematical proofs showing (1) MMD with Riesz kernels is a metric on probability measures, (2) sliced MMD equals standard MMD for Riesz kernels, (3) efficient sorting algorithms for gradient computation, and (4) concentration bounds for the stochastic gradient approximation with favorable O(√(d/P)) scaling",
+    "Computational efficiency: The proposed sorting algorithm reduces complexity from O(MN+N²) to O((M+N)log(M+N)), making large-scale applications tractable. The iterative training scheme requiring only one network at a time enables training on modest hardware (8GB GPU)",
+    "Well-structured presentation: The paper clearly motivates the problem, presents theoretical results with detailed proofs (in appendices), and demonstrates practical applicability through experiments",
+    "Novel connection between slicing and Riesz kernels: The observation that sliced Riesz kernels remain Riesz kernels (Theorem 2) is elegant and enables the entire computational framework"
+  ],
+  "weaknesses": [
+    "Limited experimental evaluation: Results on CIFAR10 (FID=87.1) significantly lag behind state-of-the-art (NCSN: 25.3). The paper only shows results on relatively simple datasets and doesn't compare computational time/resources against other methods empirically",
+    "Restrictive kernel choice: The approach is limited to Riesz kernels with r∈(0,2). The paper doesn't adequately discuss limitations of this choice or compare with other kernels empirically. The case r=1 receives special attention, but justification for this choice is limited",
+    "Momentum scheme lacks theoretical justification: While momentum MMD flows (Eq. 9) show empirical improvements, there's no theoretical analysis of convergence or optimal momentum parameter selection. The momentum parameters vary across datasets without clear guidelines",
+    "Hyperparameter sensitivity not addressed: The method involves many hyperparameters (P, τ, m, number of steps T_l, network architectures) with dataset-specific choices in Appendix 11. No systematic study of sensitivity or selection strategies is provided",
+    "Gap between theory and practice: Theoretical results assume infinite projections (P→∞) but practical implementation uses finite P. While Theorem 4 provides error bounds, the choice of P=1000-4000 seems ad-hoc without clear justification relative to dimension d"
+  ],
+  "clarity_score": 8,
+  "novelty_score": 7,
+  "technical_quality_score": 8,
+  "experimental_rigor_score": 5,
+  "overall_score": 6,
+  "confidence": 4,
+  "recommendation": "Weak Accept",
+  "detailed_comments": "This paper makes solid theoretical contributions to MMD-based gradient flows, particularly the connection between slicing and Riesz kernels and the efficient sorting algorithms. The mathematical analysis is rigorous with complete proofs. However, the experimental evaluation is limited, showing competitive results only on simple datasets (MNIST, FashionMNIST) while significantly underperforming on CIFAR10. The gap between the elegant theory (applicable in high dimensions with good scaling properties) and modest practical results raises questions about the approach's scalability to modern generative modeling challenges. The paper would benefit from: (1) more comprehensive experiments including computational comparisons, (2) ablation studies on key hyperparameters, (3) theoretical or empirical guidance on momentum parameter selection, and (4) discussion of when Riesz kernels are preferred over alternatives. Despite these limitations, the theoretical contributions are valuable and the efficient computational framework could enable future work on MMD flows.",
+  "paper_id": "VdkGRV1vcf",
+  "version": "v1",
+  "run_id": 0,
+  "model_type": "Anthropic",
+  "success": true,
+  "soundness": 8,
+  "presentation": 8,
+  "contribution": 7,
+  "rating": 6
+}
