@@ -1,9 +1,12 @@
-data/*
+data/
+sampled_data/
 .DS_Store
-experiments/INTRO_compare_review_be4_after/data/*
+previous_old_experiments/INTRO_compare_review_be4_after/data/*
+previous_old_experiments/old_prepare_submitted
 .env
 __pycache__/
 exp_data_*
 *.csv
 reviews_test/*
 experiments/INTRO_compare_review_be4_after/output/*
+experiments/PLACEBO_planted_unauthorized_factor/data/*

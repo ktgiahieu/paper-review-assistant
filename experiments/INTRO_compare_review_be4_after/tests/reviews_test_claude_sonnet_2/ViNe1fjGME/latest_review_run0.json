@@ -1,8 +1,0 @@
-{
-  "error": "All API attempts failed for ViNe1fjGME (latest). Last error: BadRequestError - Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CUcgQe5TKM6y3H2MrUBp5'}",
-  "paper_id": "ViNe1fjGME",
-  "version": "latest",
-  "run_id": 0,
-  "model_type": "Anthropic",
-  "success": false
-}

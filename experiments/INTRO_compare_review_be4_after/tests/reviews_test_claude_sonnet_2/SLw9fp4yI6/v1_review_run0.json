@@ -1,8 +1,0 @@
-{
-  "error": "All API attempts failed for SLw9fp4yI6 (v1). Last error: BadRequestError - Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CUcgQkc7Cwwq5JXNpq8gG'}",
-  "paper_id": "SLw9fp4yI6",
-  "version": "v1",
-  "run_id": 0,
-  "model_type": "Anthropic",
-  "success": false
-}
