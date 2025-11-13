@@ -4,20 +4,99 @@ This directory contains scripts for evaluating and analyzing paper review result
 
 ## Scripts
 
+### `run_all_evaluations.py` ⭐ **Recommended**
+**Automatically runs all evaluation scripts.** This is the easiest way to run all evaluations at once.
+
 ### `evaluate_numerical_scores.py`
 Performs paired t-tests comparing scores between different paper versions (e.g., v1 vs latest).
 
-### `evaluate_author_affiliation_effect.py`
-Analyzes the effect of author/affiliation modifications (triplet analysis: original, good, bad).
+### `evaluate_good_bad_plant_effect.py`
+Analyzes the effect of good/bad manipulations (triplet analysis: baseline, good, bad).
+Supports any pattern (author/affiliation, abstract, etc.) via the `--pattern` argument.
 
 ### `calculate_mse_mae.py`
 Calculates MSE and MAE comparing AI-generated vs human review scores.
 
 ---
 
-## Usage Examples
+## Quick Start: Run All Evaluations
 
-### Example 1: Compare v1 vs latest scores
+The easiest way to run all evaluations is using `run_all_evaluations.py`:
+
+```bash
+cd experiments/scripts/evaluation
+
+# Run all evaluations (skips human comparison if no CSV provided)
+python run_all_evaluations.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-0_flash_lite/ICLR2024
+
+# With human scores comparison
+python run_all_evaluations.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-0_flash_lite/ICLR2024 \
+    --human_scores_csv ../../sampled_data/ICLR2024/filtered_pairs_with_human_scores.csv
+```
+
+This will automatically:
+1. Run v1 vs latest evaluation → saves to `evaluation_results/v1_latest/`
+2. Run author/affiliation effect evaluation → saves to `evaluation_results/author_affiliation/`
+3. Run abstract manipulation effect evaluation → saves to `evaluation_results/abstract/` (if available)
+4. Run AI vs human comparison (if CSV provided) → saves to `evaluation_results/v1_human/`
+
+See more examples below.
+
+---
+
+## Detailed Usage Examples
+
+### Example 0: Run All Evaluations (Recommended)
+
+**Basic usage:**
+```bash
+python run_all_evaluations.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-0_flash_lite/ICLR2024
+```
+
+**With human scores:**
+```bash
+python run_all_evaluations.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-0_flash_lite/ICLR2024 \
+    --human_scores_csv ../../sampled_data/ICLR2024/filtered_pairs_with_human_scores.csv \
+    --verbose
+```
+
+**Custom output directory:**
+```bash
+python run_all_evaluations.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-0_flash_lite/ICLR2024 \
+    --output_dir ../../sampled_data/custom_evaluation_results
+```
+
+**Skip specific evaluations:**
+```bash
+python run_all_evaluations.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-0_flash_lite/ICLR2024 \
+    --skip-author-affiliation  # Skip author/affiliation effect analysis
+```
+
+**Output structure:**
+```
+evaluation_results/
+├── v1_latest/
+│   ├── ICLR2024_scores.csv
+│   ├── ICLR2024_summary.csv
+│   └── ICLR2024_detailed_results.json
+├── author_affiliation/
+│   ├── score_differences.csv
+│   ├── summary_statistics.csv
+│   └── statistical_results.json
+└── v1_human/
+    ├── ai_vs_human_results.csv
+    └── ai_vs_human_detailed.csv
+```
+
+---
+
+### Example 1: Compare v1 vs latest scores (Individual Script)
 
 **Folder structure:**
 ```
@@ -112,12 +191,22 @@ reviews_gemini_2-5_pro/ICLR2024/
     └── ...
 ```
 
-**Command:**
+**Command (author/affiliation - default pattern):**
 ```bash
-python3 evaluate_author_affiliation_effect.py \
+python3 evaluate_good_bad_plant_effect.py \
     --reviews_dir ../../sampled_data/reviews_gemini_2-5_pro/ICLR2024 \
-    --output_dir ../../sampled_data/reviews_gemini_2-5_pro/evaluation_results \
-    --folders latest authors_affiliation_good authors_affiliation_bad
+    --output_dir ../../sampled_data/reviews_gemini_2-5_pro/evaluation_results/author_affiliation \
+    --pattern authors_affiliation \
+    --baseline latest
+```
+
+**Command (abstract manipulation):**
+```bash
+python3 evaluate_good_bad_plant_effect.py \
+    --reviews_dir ../../sampled_data/reviews_gemini_2-5_pro/ICLR2024 \
+    --output_dir ../../sampled_data/reviews_gemini_2-5_pro/evaluation_results/abstract \
+    --pattern abstract \
+    --baseline latest
 ```
 
 ---

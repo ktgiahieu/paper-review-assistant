@@ -40,7 +40,7 @@ plt.rcParams['savefig.dpi'] = 300
 COLOR_MATCH = "#2ecc71"
 COLOR_MISMATCH = "#e74c3c"
 COLOR_NEUTRAL = "#95a5a6"
-ERROR_BAR_SCALE = 0.2
+ERROR_BAR_SCALE = 1
 
 def extract_numerical_value(score_str) -> Optional[float]:
     """
@@ -642,6 +642,7 @@ def main():
     reviews_dir = Path(args.reviews_dir)
     
     comparisons: List[Dict] = []
+    df_diffs: Optional[pd.DataFrame] = None
     
     # Handle new format evaluation
     if args.new_format or (args.pattern and args.pattern in ['planted_error', 'sham_surgery']):
@@ -875,26 +876,6 @@ def main():
         good_label = good_folder.replace('_', ' ').title()
         bad_label = bad_folder.replace('_', ' ').title()
         
-        comparisons = []
-        if 'good_score' in df_diffs.columns:
-            comparisons.append({
-                'label': f'{good_label} vs {baseline_label}',
-                'treatment_score_col': 'good_score',
-                'control_score_col': 'baseline_score',
-                'treatment_label': good_label,
-                'control_label': baseline_label,
-                'expected_direction': infer_expected_direction(good_label, baseline_label)
-            })
-        if 'bad_score' in df_diffs.columns:
-            comparisons.append({
-                'label': f'{bad_label} vs {baseline_label}',
-                'treatment_score_col': 'bad_score',
-                'control_score_col': 'baseline_score',
-                'treatment_label': bad_label,
-                'control_label': baseline_label,
-                'expected_direction': infer_expected_direction(bad_label, baseline_label)
-            })
-        
         print("="*80)
         print(f"{pattern_name} Effect Evaluation")
         print("="*80)
@@ -935,9 +916,36 @@ def main():
         
         print(f"Calculated differences for {df_diffs['paper_id'].nunique()} papers")
         print(f"  Metrics: {df_diffs['metric'].unique()}")
+        
+        comparisons = []
+        if 'good_score' in df_diffs.columns:
+            comparisons.append({
+                'label': f'{good_label} vs {baseline_label}',
+                'treatment_score_col': 'good_score',
+                'control_score_col': 'baseline_score',
+                'treatment_label': good_label,
+                'control_label': baseline_label,
+                'expected_direction': infer_expected_direction(good_label, baseline_label)
+            })
+        if 'bad_score' in df_diffs.columns:
+            comparisons.append({
+                'label': f'{bad_label} vs {baseline_label}',
+                'treatment_score_col': 'bad_score',
+                'control_score_col': 'baseline_score',
+                'treatment_label': bad_label,
+                'control_label': baseline_label,
+                'expected_direction': infer_expected_direction(bad_label, baseline_label)
+            })
     
+    if df_diffs is None:
+        raise RuntimeError("Internal error: no score differences were calculated.")
+
     metrics = ['soundness', 'presentation', 'contribution', 'rating']
     
+    if not comparisons:
+        print("\nNo valid treatment/control comparisons available for this dataset.")
+        return
+
     # Compute statistics
     print("\nComputing effect sizes (Cohen's d)...")
     stats_results = compute_statistics(df_diffs, comparisons, metrics)

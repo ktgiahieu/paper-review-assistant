@@ -10,3 +10,5 @@ exp_data_*
 reviews_test/*
 experiments/INTRO_compare_review_be4_after/output/*
 experiments/PLACEBO_planted_unauthorized_factor/data/*
+experiments/sampled_data_miss1/
+experiments/exp_rewrite_data/

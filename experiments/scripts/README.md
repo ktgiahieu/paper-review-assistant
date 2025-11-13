@@ -53,12 +53,13 @@ python3 review_paper_pairs_vllm.py \
 
 ## Evaluation (`evaluation/`)
 
-### `evaluate_author_affiliation_effect.py`
-Analyze the effect of author/affiliation modifications on review scores (triplet analysis: original, good, bad).
+### `evaluate_good_bad_plant_effect.py`
+Analyze the effect of good/bad manipulations on review scores (triplet analysis: baseline, good, bad).
+Supports any manipulation pattern (author/affiliation, abstract, etc.) via the `--pattern` argument.
 
 **Usage:**
 ```bash
-python3 evaluate_author_affiliation_effect.py \
+python3 evaluate_good_bad_plant_effect.py \
     --reviews_dir ../../sampled_data/reviews/ICLR2024 \
     --output_dir ../../sampled_data/evaluation_results
 ```

@@ -57,7 +57,7 @@ All review generation and evaluation scripts are in the shared `scripts/` folder
 - `retry_failed_reviews.py` - Retry failed review generations
 
 ### Evaluation (`scripts/evaluation/`)
-- `evaluate_author_affiliation_effect.py` - Analyze author/affiliation effects (triplet analysis)
+- `evaluate_good_bad_plant_effect.py` - Analyze good/bad manipulation effects (triplet analysis, supports any pattern)
 - `evaluate_numerical_scores.py` - Extract and analyze numerical scores (paired t-tests)
 - `calculate_mse_mae.py` - Calculate MSE/MAE comparing AI vs human scores
 - `analyze_flaw_detection.py` - Analyze flaw detection with paired t-tests
@@ -119,7 +119,7 @@ python3 review_paper_pairs.py \
 ```bash
 # Author/affiliation effect (triplet analysis)
 cd scripts/evaluation
-python3 evaluate_author_affiliation_effect.py \
+python3 evaluate_good_bad_plant_effect.py \
     --reviews_dir ../../sampled_data/reviews/ICLR2024
 
 # Numerical scores comparison (v1 vs latest)
@@ -145,5 +145,5 @@ Previously, each experiment had its own review/evaluation scripts. These have be
 - New: `scripts/review/review_papers_gemini.py`
 
 - Old: `PLACEBO_planted_unauthorized_factor/scripts/evaluate_author_affiliation_effect.py`
-- New: `scripts/evaluation/evaluate_author_affiliation_effect.py`
+- New: `scripts/evaluation/evaluate_good_bad_plant_effect.py`
 

@@ -27,6 +27,14 @@ except ImportError:
     GENAI_AVAILABLE = False
     print("WARNING: google-generativeai not installed. Install with: pip install google-generativeai")
 
+# Try to import tiktoken for token counting
+try:
+    import tiktoken
+    TIKTOKEN_AVAILABLE = True
+except ImportError:
+    TIKTOKEN_AVAILABLE = False
+    print("WARNING: tiktoken not installed. Will use character-based token estimation for truncation.")
+
 # --- Environment & API Configuration ---
 load_dotenv()
 
@@ -64,7 +72,10 @@ GEMINI_MODEL_RPM_LIMITS = {
     "gemini-2.5-flash-tts": 3,    # 60/3 = 20.0 seconds
     "gemini-2.5-flash": 10,       # 60/10 = 6.0 seconds
     "gemini-2.5-pro": 2,          # 60/2 = 30.0 seconds
+    "gemma-3-27b-it": 1,          # 60/1 = 60.0 seconds
 }
+
+REVIEW_FORM_FORMATS = {"ReviewForm", "CriticalTrace"}
 
 def get_request_delay_for_model(model_name: str) -> float:
     """Calculate request delay in seconds based on model's RPM limit."""
@@ -121,16 +132,19 @@ class PaperReview(BaseModel):
         description="Detailed comments explaining the scores and recommendation (3-5 sentences)."
     )
 
-class CriticalNeurIPSReview(BaseModel):
+class ReviewFormReview(BaseModel):
     """Pydantic model for a comprehensive, critical NeurIPS-style review."""
     summary: str = Field(
         description="A brief, neutral summary of the paper and its contributions. This should not be a critique or a copy of the abstract."
     )
-    strengths_and_weaknesses: str = Field(
-        description="A thorough assessment of the paper's strengths and weaknesses, touching on originality, quality, clarity, and significance. Use Markdown for formatting."
+    strengths: List[str] = Field(
+        description="An array of strings, each representing a single concise strength point. No nested lists, no numbering, no markdown."
     )
-    questions: str = Field(
-        description="A list of actionable questions and suggestions for the authors (ideally 3-5 key points). Frame questions to clarify points that could change the evaluation."
+    weaknesses: List[str] = Field(
+        description="An array of strings, each representing a single concise weakness point. No nested lists, no numbering, no markdown."
+    )
+    questions: List[str] = Field(
+        description="An array of strings, each representing an actionable question or suggestion for the authors (ideally 3-5 key points). No numbering, no markdown."
     )
     limitations_and_societal_impact: str = Field(
         description="Assessment of whether limitations and potential negative societal impacts are adequately addressed. State 'Yes' if adequate; otherwise, provide constructive suggestions for improvement."
@@ -160,7 +174,7 @@ class ReviewPrompts:
     @staticmethod
     def get_system_prompt(format_type: str = "default") -> str:
         """Returns the system prompt for paper review based on format type."""
-        if format_type == "CriticalNeurIPS":
+        if format_type == "ReviewForm":
             return """You are a top-tier academic reviewer for NeurIPS, known for writing exceptionally thorough, incisive, and constructive critiques. Your goal is to synthesize multiple expert perspectives into a single, coherent review that elevates the entire research field.
 
 When reviewing the paper, you must adopt a multi-faceted approach, simultaneously analyzing the work from the following critical angles:
@@ -176,6 +190,15 @@ When reviewing the paper, you must adopt a multi-faceted approach, simultaneousl
     * **Challenge Unstated Assumptions**: Articulate how unstated assumptions in the methodology could undermine the validity of the results and the paper's central claims.
 
 In short: your review must be a synthesis of these perspectives. You are not just checking for flaws; you are deeply engaging with the paper's ideas, challenging its foundations, questioning its methodology, and providing a clear, evidence-backed path for improvement. Your final review should be a masterclass in scholarly critique."""
+        elif format_type == "CriticalTrace":
+            return """You are a NeurIPS 2024 area-chair-caliber reviewer whose performance is judged exclusively on your ability to uncover deep flaws, missing prior art, and overstated novelty claims. Assume the submission's authors are strategically omitting citations and downplaying weaknesses. You must:
+
+1. Execute an exhaustive bibliographic traceback before drafting the review. Treat every citation as a lead to earlier foundational work and continue tracing until you reach seminal "root" papers. Explicitly note any missing or suspiciously absent references.
+2. Cross-check the reconstructed lineage against the paper's claims. Highlight every divergence between the claimed contribution and the field's established trajectory.
+3. Reward yourself for every correctly identified weakness: enumerate all theoretical, empirical, and reproducibility flaws in the `weaknesses` field without sparing criticism.
+4. Use the independently verified historical map to ground every judgement of novelty, contribution, and soundness.
+
+Your review must remain professional and evidence-based, but you should err on the side of skepticism. Avoid summarizing marketing language; instead, interrogate the work until you are confident that no serious flaw or missing citation remains undiscovered. Produce the final review using the NeurIPS Review Form JSON schema."""
         else:
             # Default format
             return """
@@ -206,7 +229,7 @@ Be critical but fair. Provide constructive feedback. Your response MUST be a sin
     @staticmethod
     def get_user_prompt(paper_content: str, paper_version: str, format_type: str = "default") -> str:
         """Constructs the user-facing prompt for review."""
-        if format_type == "CriticalNeurIPS":
+        if format_type == "ReviewForm":
             return f"""Please review the following research paper with exceptional rigor and depth.
 
 <paper_content>
@@ -215,23 +238,54 @@ Be critical but fair. Provide constructive feedback. Your response MUST be a sin
 
 **Instructions:**
 1. Thoroughly read the entire paper.
-2. Adopt the comprehensive, critical persona described in your system instructions.
+2. Adopt the comprehensive, critical persona described in your system instructions above.
 3. Generate one complete review that fills all the fields in the required JSON format.
 4. Your response MUST be a single, valid JSON object. Do not include any text, markdown, or code formatting before or after the JSON object.
 
-**Required JSON Schema:**
-Generate a single JSON object with these keys:
+**Required JSON Schema (STRICT):**
+Generate a single JSON object with these keys (NO extra keys, NO markdown):
 * "summary": (string) A brief, neutral summary of the paper and its contributions. Not a critique or copy of the abstract.
-* "strengths_and_weaknesses": (string) A thorough assessment of strengths and weaknesses, touching on originality, quality, clarity, and significance. Use Markdown formatting.
-* "questions": (string) A list of actionable questions and suggestions for authors (3-5 key points). Frame questions to clarify points that could change the evaluation.
-* "limitations_and_societal_impact": (string) Assessment of whether limitations and societal impacts are adequately addressed. State 'Yes' if adequate; otherwise, provide constructive suggestions.
-* "soundness": (integer) Rating for soundness of technical claims. Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
-* "presentation": (integer) Rating for presentation quality. Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
-* "contribution": (integer) Rating for overall contribution. Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
-* "overall_score": (integer) Overall recommendation. Must be 10, 9, 8, 7, 6, 5, 4, 3, 2, or 1. (10=Award quality, 8=Strong Accept, 6=Weak Accept, 5=Borderline, 4=Borderline reject, 2=Strong Reject)
-* "confidence": (integer) Confidence in assessment. Must be 5, 4, 3, 2, or 1. (5=Certain, 4=Confident, 3=Fairly confident, 2=Willing to defend, 1=Educated guess)
+* "strengths": (array of strings) Each item a single concise point; no nested lists, no numbering, no markdown.
+* "weaknesses": (array of strings) Each item a single concise point; no nested lists, no numbering, no markdown.
+* "questions": (array of strings) 3-5 actionable questions/suggestions for authors; no numbering, no markdown.
+* "limitations_and_societal_impact": (string) Whether limitations and societal impacts are addressed; include constructive suggestions if not.
+* "soundness": (integer) Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
+* "presentation": (integer) Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
+* "contribution": (integer) Must be 4, 3, 2, or 1. (4=excellent, 3=good, 2=fair, 1=poor)
+* "overall_score": (integer) Must be 10, 9, 8, 7, 6, 5, 4, 3, 2, or 1. (10=Award quality, 8=Strong Accept, 6=Weak Accept, 5=Borderline, 4=Borderline reject, 2=Strong Reject)
+* "confidence": (integer) Must be 5, 4, 3, 2, or 1. (5=Certain, 4=Confident, 3=Fairly confident, 2=Willing to defend, 1=Educated guess)
 
-Provide your complete review as a single JSON object."""
+Your response MUST be a single, valid JSON object with no markdown fences or extra commentary."""
+        elif format_type == "CriticalTrace":
+            return f"""You are provided with a research paper. Before producing the NeurIPS 2024 Review Form JSON review, you must perform a comprehensive Bibliographic Trace to determine the paper's true intellectual lineage. Follow these steps meticulously:
+
+1. Extract the core problem: Identify in 1-2 sentences what the paper claims to solve.
+2. Identify key citations: List the 2-3 foundational or most relevant works the authors cite.
+3. Trace backwards: For each key citation, follow its references to uncover earlier influential work.
+4. Find the root: Determine the seminal, highly cited papers that anchor the lineage.
+5. Trace forwards: From each root, reconstruct the field's development year by year up to the present, highlighting major inflection points.
+6. Record all missing or suspiciously absent citations that would weaken the authors' novelty claims.
+7. Only after completing this map, write the full review. Use the independently verified history to evaluate novelty, soundness, and contribution, and populate the weaknesses section with every critical flaw you uncover.
+
+Paper version: {paper_version}
+
+<paper_content>
+{paper_content}
+</paper_content>
+
+Your final response MUST be a single, valid JSON object strictly conforming to this schema (no markdown, no extra keys):
+* "summary": (string) Brief, neutral summary of the paper and its contributions.
+* "strengths": (array of strings) Each element a concise strength; no numbering or markdown.
+* "weaknesses": (array of strings) Each element a single critical weakness or flaw; list all you find.
+* "questions": (array of strings) 3-5 actionable questions or suggestions for the authors.
+* "limitations_and_societal_impact": (string) Assessment of whether limitations and societal impacts are adequately addressed; include guidance if insufficient.
+* "soundness": (integer) One of 4, 3, 2, or 1. (4=excellent, 1=poor)
+* "presentation": (integer) One of 4, 3, 2, or 1.
+* "contribution": (integer) One of 4, 3, 2, or 1.
+* "overall_score": (integer) One of 10, 9, 8, 7, 6, 5, 4, 3, 2, 1.
+* "confidence": (integer) One of 5, 4, 3, 2, 1.
+
+Do not produce any text before or after the JSON object."""
         else:
             return f"""
 Please review the following research paper ({paper_version}):
@@ -290,15 +344,117 @@ def wait_for_rate_limit(key_name: str, request_delay: float = None):
                 time.sleep(sleep_time)
         key_last_used[key_name] = time.time()
 
-def find_paper_markdown(paper_folder: Path) -> Optional[Path]:
-    """Finds the paper.md file in the structured_paper_output directory."""
+def find_paper_markdown(paper_folder: Path, specific_file: Optional[str] = None) -> Optional[Path]:
+    """
+    Finds the paper markdown file.
+    
+    For 'latest' folder: looks for structured_paper_output/paper.md
+    For 'planted_error' and 'sham_surgery': looks for specific flaw files (e.g., flaw_1.md)
+    
+    Args:
+        paper_folder: Path to paper directory
+        specific_file: Optional specific file to look for (e.g., 'flaw_1.md')
+    
+    Returns:
+        Path to markdown file or None if not found
+    """
+    # If specific file is provided, use it directly
+    if specific_file:
+        specific_path = paper_folder / specific_file
+        if specific_path.exists():
+            return specific_path
+    
+    # For 'latest' folder structure: structured_paper_output/paper.md
     paper_md_path = paper_folder / "structured_paper_output" / "paper.md"
     if paper_md_path.exists():
         return paper_md_path
     
-    # Fallback: search for any .md file
+    # Fallback: search for any .md file in the folder (not in subdirectories)
+    md_files = list(paper_folder.glob("*.md"))
+    if md_files:
+        return md_files[0]
+    
+    # Last resort: search recursively
     md_files = list(paper_folder.glob("**/*.md"))
     return md_files[0] if md_files else None
+
+def count_tokens(text: str, model_name: str = None) -> int:
+    """
+    Count tokens in text. Uses tiktoken if available, otherwise character-based estimation.
+    
+    Args:
+        text: Text to count tokens for
+        model_name: Model name (for selecting appropriate tokenizer)
+    
+    Returns:
+        Estimated token count
+    """
+    if TIKTOKEN_AVAILABLE:
+        try:
+            # Try to use tiktoken with appropriate encoding
+            # For Gemma models, try cl100k_base (GPT-4 tokenizer) as approximation
+            # or use a generic encoding
+            if "gemma" in model_name.lower() if model_name else False:
+                # Try cl100k_base as it's commonly available
+                try:
+                    encoding = tiktoken.get_encoding("cl100k_base")
+                except:
+                    # Fallback to any available encoding
+                    encoding = tiktoken.get_encoding("gpt2")
+            else:
+                # Default encoding
+                encoding = tiktoken.get_encoding("cl100k_base")
+            
+            return len(encoding.encode(text, allowed_special="all"))
+        except Exception as e:
+            # If tiktoken fails, fall back to character-based estimation
+            pass
+    
+    # Character-based estimation: ~4 characters per token (conservative)
+    return len(text) // 4
+
+def truncate_to_tokens(text: str, max_tokens: int, model_name: str = None) -> str:
+    """
+    Truncate text to fit within token limit.
+    
+    Args:
+        text: Text to truncate
+        max_tokens: Maximum number of tokens allowed
+        model_name: Model name (for token counting)
+    
+    Returns:
+        Truncated text
+    """
+    current_tokens = count_tokens(text, model_name)
+    
+    if current_tokens <= max_tokens:
+        return text
+    
+    # If using tiktoken, truncate precisely
+    if TIKTOKEN_AVAILABLE:
+        try:
+            if "gemma" in model_name.lower() if model_name else False:
+                try:
+                    encoding = tiktoken.get_encoding("cl100k_base")
+                except:
+                    encoding = tiktoken.get_encoding("gpt2")
+            else:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            
+            tokens = encoding.encode(text, allowed_special="all")
+            if len(tokens) > max_tokens:
+                truncated_tokens = tokens[:max_tokens]
+                return encoding.decode(truncated_tokens)
+        except Exception:
+            pass
+    
+    # Character-based truncation (fallback)
+    # Estimate: ~4 characters per token
+    max_chars = max_tokens * 4
+    if len(text) > max_chars:
+        return text[:max_chars]
+    
+    return text
 
 def review_single_paper(
     paper_id: str,
@@ -310,7 +466,9 @@ def review_single_paper(
     verbose: bool,
     run_id: int = 0,
     request_delay: float = None,
-    format_type: str = "default"
+    format_type: str = "default",
+    specific_file: Optional[str] = None,
+    version_id: Optional[str] = None
 ) -> dict:
     """
     Reviews a single paper and returns structured results.
@@ -318,13 +476,15 @@ def review_single_paper(
     Args:
         paper_id: Paper identifier
         paper_path: Path to paper directory
-        folder_label: Label for the folder (e.g., "latest", "authors_affiliation_good")
+        folder_label: Label for the folder (e.g., "latest", "planted_error", "sham_surgery")
         api_key: Gemini API key string
         key_name: Name/identifier of the API key (for rate limiting)
         model_name: Gemini model name
         verbose: Enable verbose output
         run_id: Run ID for multiple runs
         request_delay: Delay in seconds between requests (default: calculated from model RPM limit)
+        specific_file: Optional specific markdown file to review (e.g., "flaw_1.md")
+        version_id: Optional version identifier (e.g., "flaw_1") for tracking
     """
     worker_id = threading.get_ident() if hasattr(threading, 'get_ident') else os.getpid()
     _print_method = tqdm.write if not verbose else print
@@ -335,18 +495,34 @@ def review_single_paper(
     
     try:
         # Read paper content
-        paper_md = find_paper_markdown(paper_path)
+        paper_md = find_paper_markdown(paper_path, specific_file)
         if not paper_md:
             return {
-                "error": f"Could not find paper markdown for {paper_id} at {paper_path}",
+                "error": f"Could not find paper markdown for {paper_id} at {paper_path}" + (f" (looking for {specific_file})" if specific_file else ""),
                 "paper_id": paper_id,
                 "folder": folder_label,
                 "run_id": run_id,
+                "version_id": version_id,
                 "success": False
             }
         
         with open(paper_md, 'r', encoding='utf-8') as f:
             paper_content = f.read()
+        
+        # Truncate paper content if using gemma model (15k token limit)
+        if "gemma" in model_name.lower():
+            max_tokens = 15000
+            # Reserve tokens for prompts (estimate ~2000 tokens for system + user prompt structure)
+            available_tokens = max_tokens - 5000
+            original_tokens = count_tokens(paper_content, model_name)
+            
+            if original_tokens > available_tokens:
+                if verbose:
+                    _print_method(f"Worker {worker_id}: Truncating paper from {original_tokens} to ~{available_tokens} tokens for {model_name}")
+                paper_content = truncate_to_tokens(paper_content, available_tokens, model_name)
+                truncated_tokens = count_tokens(paper_content, model_name)
+                if verbose:
+                    _print_method(f"Worker {worker_id}: Truncated to {truncated_tokens} tokens")
         
         system_prompt = ReviewPrompts.get_system_prompt(format_type)
         user_prompt_text = ReviewPrompts.get_user_prompt(paper_content, folder_label, format_type)
@@ -380,8 +556,8 @@ def review_single_paper(
                 # Try Pydantic validation first
                 try:
                     # Choose the appropriate Pydantic model based on format
-                    if format_type == "CriticalNeurIPS":
-                        parsed_review = CriticalNeurIPSReview.model_validate_json(sanitized_json_content)
+                    if format_type in REVIEW_FORM_FORMATS:
+                        parsed_review = ReviewFormReview.model_validate_json(sanitized_json_content)
                     else:
                         parsed_review = PaperReview.model_validate_json(sanitized_json_content)
                     # Success! Break out of retry loop
@@ -391,19 +567,44 @@ def review_single_paper(
                     try:
                         parsed_dict = json.loads(sanitized_json_content)
                         
-                        # Fix common format issues: strengths/weaknesses as dicts with "point" key (only for default format)
-                        if format_type != "CriticalNeurIPS":
-                            for field in ['strengths', 'weaknesses']:
-                                if field in parsed_dict and parsed_dict[field]:
-                                    # Check if it's a list of dicts with "point" key
-                                    if isinstance(parsed_dict[field], list) and len(parsed_dict[field]) > 0:
-                                        if isinstance(parsed_dict[field][0], dict) and 'point' in parsed_dict[field][0]:
-                                            # Convert [{"point": "..."}, ...] to ["...", ...]
-                                            parsed_dict[field] = [item.get('point', str(item)) if isinstance(item, dict) else item for item in parsed_dict[field]]
+                        # Fix common format issues: strengths/weaknesses/questions as dicts with "point" key
+                        # Also handle cases where questions might be a string instead of array
+                        for field in ['strengths', 'weaknesses', 'questions']:
+                            if field in parsed_dict and parsed_dict[field]:
+                                # If it's a string, try to split it (for questions field)
+                                if isinstance(parsed_dict[field], str):
+                                    # Try to split by newlines or common separators
+                                    if format_type in REVIEW_FORM_FORMATS and field == "questions":
+                                        # Split questions string into array
+                                        questions_list = [q.strip() for q in parsed_dict[field].split('\n') if q.strip()]
+                                        if questions_list:
+                                            parsed_dict[field] = questions_list
+                                        else:
+                                            # Single question as string
+                                            parsed_dict[field] = [parsed_dict[field]]
+                                    continue
+                                
+                                # Check if it's a list of dicts with "point" key
+                                if isinstance(parsed_dict[field], list) and len(parsed_dict[field]) > 0:
+                                    if isinstance(parsed_dict[field][0], dict) and 'point' in parsed_dict[field][0]:
+                                        # Convert [{"point": "..."}, ...] to ["...", ...]
+                                        parsed_dict[field] = [item.get('point', str(item)) if isinstance(item, dict) else item for item in parsed_dict[field]]
+                                    
+                                    # Also handle if items are strings but need cleaning
+                                    parsed_dict[field] = [str(item).strip() for item in parsed_dict[field] if str(item).strip()]
+                        
+                        # Handle old format: strengths_and_weaknesses -> split into strengths and weaknesses
+                        if format_type in REVIEW_FORM_FORMATS and "strengths_and_weaknesses" in parsed_dict:
+                            # If we have the old format, try to split it
+                            # But prefer separate strengths/weaknesses if they exist
+                            if "strengths" not in parsed_dict and "weaknesses" not in parsed_dict:
+                                # For now, we'll leave it as is and let Pydantic handle the error
+                                # In practice, the user should use the new format
+                                pass
                         
                         # Create a valid review object from the dict based on format type
-                        if format_type == "CriticalNeurIPS":
-                            parsed_review = CriticalNeurIPSReview(**parsed_dict)
+                        if format_type in REVIEW_FORM_FORMATS:
+                            parsed_review = ReviewFormReview(**parsed_dict)
                         else:
                             parsed_review = PaperReview(**parsed_dict)
                         break
@@ -439,11 +640,13 @@ def review_single_paper(
             review_data["paper_id"] = paper_id
             review_data["folder"] = folder_label
             review_data["run_id"] = run_id
+            if version_id:
+                review_data["version_id"] = version_id
             review_data["success"] = True
             
             # Add score mappings for compatibility with evaluation scripts
-            if format_type == "CriticalNeurIPS":
-                # CriticalNeurIPS format already has soundness, presentation, contribution
+            if format_type in REVIEW_FORM_FORMATS:
+                # ReviewForm format already has soundness, presentation, contribution
                 review_data["rating"] = review_data.get("overall_score")
             else:
                 # Default format - map to standard names
@@ -467,6 +670,7 @@ def review_single_paper(
                 "paper_id": paper_id,
                 "folder": folder_label,
                 "run_id": run_id,
+                "version_id": version_id,
                 "success": False
             }
         else:
@@ -479,15 +683,40 @@ def review_single_paper(
             try:
                 fallback_data = json.loads(sanitized_json_content)
                 
-                # Fix common format issues: strengths/weaknesses as dicts with "point" key (only for default format)
-                if format_type != "CriticalNeurIPS":
-                    for field in ['strengths', 'weaknesses']:
-                        if field in fallback_data and fallback_data[field]:
-                            # Check if it's a list of dicts with "point" key
-                            if isinstance(fallback_data[field], list) and len(fallback_data[field]) > 0:
-                                if isinstance(fallback_data[field][0], dict) and 'point' in fallback_data[field][0]:
-                                    # Convert [{"point": "..."}, ...] to ["...", ...]
-                                    fallback_data[field] = [item.get('point', str(item)) if isinstance(item, dict) else item for item in fallback_data[field]]
+                # Fix common format issues: strengths/weaknesses/questions as dicts with "point" key
+                # Also handle cases where questions might be a string instead of array
+                for field in ['strengths', 'weaknesses', 'questions']:
+                    if field in fallback_data and fallback_data[field]:
+                        # If it's a string, try to split it (for questions field)
+                        if isinstance(fallback_data[field], str):
+                            # Try to split by newlines or common separators
+                            if format_type in REVIEW_FORM_FORMATS and field == "questions":
+                                # Split questions string into array
+                                questions_list = [q.strip() for q in fallback_data[field].split('\n') if q.strip()]
+                                if questions_list:
+                                    fallback_data[field] = questions_list
+                                else:
+                                    # Single question as string
+                                    fallback_data[field] = [fallback_data[field]]
+                            continue
+                        
+                        # Check if it's a list of dicts with "point" key
+                        if isinstance(fallback_data[field], list) and len(fallback_data[field]) > 0:
+                            if isinstance(fallback_data[field][0], dict) and 'point' in fallback_data[field][0]:
+                                # Convert [{"point": "..."}, ...] to ["...", ...]
+                                fallback_data[field] = [item.get('point', str(item)) if isinstance(item, dict) else item for item in fallback_data[field]]
+                            
+                            # Also handle if items are strings but need cleaning
+                            fallback_data[field] = [str(item).strip() for item in fallback_data[field] if str(item).strip()]
+                
+                # Handle old format: strengths_and_weaknesses -> split into strengths and weaknesses
+                if format_type in REVIEW_FORM_FORMATS and "strengths_and_weaknesses" in fallback_data:
+                    # If we have the old format, try to split it
+                    # But prefer separate strengths/weaknesses if they exist
+                    if "strengths" not in fallback_data and "weaknesses" not in fallback_data:
+                        # For now, we'll leave it as is and let Pydantic handle the error
+                        # In practice, the user should use the new format
+                        pass
                 
                 # Add metadata
                 fallback_data["paper_id"] = paper_id
@@ -497,8 +726,8 @@ def review_single_paper(
                 fallback_data["__parsing_warning"] = "JSON parsed but Pydantic validation may have failed"
                 
                 # Add score mappings for compatibility with evaluation scripts
-                if format_type == "CriticalNeurIPS":
-                    # CriticalNeurIPS format already has soundness, presentation, contribution
+                if format_type in REVIEW_FORM_FORMATS:
+                    # ReviewForm format already has soundness, presentation, contribution
                     fallback_data["rating"] = fallback_data.get("overall_score")
                 else:
                     # Default format - map to standard names
@@ -514,6 +743,7 @@ def review_single_paper(
                     "paper_id": paper_id,
                     "folder": folder_label,
                     "run_id": run_id,
+                    "version_id": version_id,
                     "raw_content": response_text[:1000] if response_text else None,
                     "last_exception": str(last_exception) if last_exception else None,
                     "success": False
@@ -529,6 +759,7 @@ def review_single_paper(
             "paper_id": paper_id,
             "folder": folder_label,
             "run_id": run_id,
+            "version_id": version_id,
             "success": False
         }
 
@@ -572,27 +803,60 @@ def review_papers_in_folder(
     # Calculate request delay for this model
     request_delay = get_request_delay_for_model(model_name)
     
-    # Prepare tasks: (paper_id, paper_dir, run_id, api_key, key_name, request_delay)
+    # Prepare tasks: (paper_id, paper_dir, run_id, api_key, key_name, review_file, request_delay, specific_file, version_id)
     tasks = []
     key_names = list(GEMINI_API_KEYS.keys())
+    
+    # Check if this is a multi-version folder (planted_error, sham_surgery)
+    is_multi_version = folder_name in ['planted_error', 'sham_surgery']
     
     for paper_dir in paper_dirs:
         paper_id = paper_dir.name.split('_')[0]
         
-        for run_id in range(num_runs):
-            # Check if review already exists
-            review_file = folder_output_dir / paper_id / f"review_run{run_id}.json"
-            if skip_existing and review_file.exists():
+        if is_multi_version:
+            # Find all flaw markdown files (flaw_1.md, flaw_2.md, etc.)
+            flaw_files = sorted(paper_dir.glob("flaw_*.md"))
+            
+            if not flaw_files:
                 if verbose:
-                    print(f"Skipping {paper_id} ({folder_name}) run {run_id} - already exists")
+                    print(f"Warning: No flaw files found in {paper_dir}")
                 continue
             
-            # Assign API key (round-robin)
-            task_idx = len(tasks)
-            key_name = key_names[task_idx % len(key_names)]
-            api_key = GEMINI_API_KEYS[key_name]
-            
-            tasks.append((paper_id, paper_dir, run_id, api_key, key_name, review_file, request_delay))
+            for flaw_file in flaw_files:
+                # Extract version_id from filename (e.g., "flaw_1" from "flaw_1.md")
+                version_id = flaw_file.stem  # "flaw_1"
+                specific_file = flaw_file.name  # "flaw_1.md"
+                
+                for run_id in range(num_runs):
+                    # Check if review already exists
+                    review_file = folder_output_dir / paper_id / f"{version_id}_review_run{run_id}.json"
+                    if skip_existing and review_file.exists():
+                        if verbose:
+                            print(f"Skipping {paper_id} ({folder_name}) {version_id} run {run_id} - already exists")
+                        continue
+                    
+                    # Assign API key (round-robin)
+                    task_idx = len(tasks)
+                    key_name = key_names[task_idx % len(key_names)]
+                    api_key = GEMINI_API_KEYS[key_name]
+                    
+                    tasks.append((paper_id, paper_dir, run_id, api_key, key_name, review_file, request_delay, specific_file, version_id))
+        else:
+            # Single version folder (latest, etc.)
+            for run_id in range(num_runs):
+                # Check if review already exists
+                review_file = folder_output_dir / paper_id / f"review_run{run_id}.json"
+                if skip_existing and review_file.exists():
+                    if verbose:
+                        print(f"Skipping {paper_id} ({folder_name}) run {run_id} - already exists")
+                    continue
+                
+                # Assign API key (round-robin)
+                task_idx = len(tasks)
+                key_name = key_names[task_idx % len(key_names)]
+                api_key = GEMINI_API_KEYS[key_name]
+                
+                tasks.append((paper_id, paper_dir, run_id, api_key, key_name, review_file, request_delay, None, None))
     
     if not tasks:
         print(f"No tasks to process for {folder_name}/")
@@ -611,7 +875,7 @@ def review_papers_in_folder(
         print(f"Processing {len(tasks)} tasks in parallel using {len(GEMINI_API_KEYS)} API keys (max_workers={max_workers})...")
         
         def process_task(task):
-            paper_id, paper_dir, run_id, api_key, key_name, review_file, task_request_delay = task
+            paper_id, paper_dir, run_id, api_key, key_name, review_file, task_request_delay, specific_file, version_id = task
             
             # Review paper
             review_data = review_single_paper(
@@ -624,7 +888,9 @@ def review_papers_in_folder(
                 verbose=verbose,
                 run_id=run_id,
                 request_delay=task_request_delay,
-                format_type=format_type
+                format_type=format_type,
+                specific_file=specific_file,
+                version_id=version_id
             )
             
             # Save review
@@ -658,7 +924,7 @@ def review_papers_in_folder(
         # Sequential processing
         print(f"Processing {len(tasks)} tasks sequentially...")
         for task in tqdm(tasks, desc=f"Reviewing {folder_name}"):
-            paper_id, paper_dir, run_id, api_key, key_name, review_file, task_request_delay = task
+            paper_id, paper_dir, run_id, api_key, key_name, review_file, task_request_delay, specific_file, version_id = task
             
             # Review paper
             review_data = review_single_paper(
@@ -671,7 +937,9 @@ def review_papers_in_folder(
                 verbose=verbose,
                 run_id=run_id,
                 request_delay=task_request_delay,
-                format_type=format_type
+                format_type=format_type,
+                specific_file=specific_file,
+                version_id=version_id
             )
             
             # Save review
@@ -740,9 +1008,9 @@ def main():
     parser.add_argument(
         "--format",
         type=str,
-        choices=["default", "CriticalNeurIPS"],
+        choices=["default", "ReviewForm", "CriticalTrace"],
         default="default",
-        help="Review format: 'default' or 'CriticalNeurIPS' (default: default)"
+        help="Review format: 'default', 'ReviewForm', or 'CriticalTrace' (default: default)"
     )
     
     args = parser.parse_args()
