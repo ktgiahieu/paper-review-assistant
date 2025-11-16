@@ -12,3 +12,7 @@ experiments/INTRO_compare_review_be4_after/output/*
 experiments/PLACEBO_planted_unauthorized_factor/data/*
 experiments/sampled_data_miss1/
 experiments/exp_rewrite_data/
+experiments/category_sampled_data_old_planted/
+experiments/category_sampled_data*
+experiments/reviews_by_category_test/
+experiments/review_2a

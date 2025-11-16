@@ -40,6 +40,7 @@ plt.rcParams['savefig.dpi'] = 300
 COLOR_MATCH = "#2ecc71"
 COLOR_MISMATCH = "#e74c3c"
 COLOR_NEUTRAL = "#95a5a6"
+COLOR_WHITE = "#ffffff"
 ERROR_BAR_SCALE = 1
 
 def extract_numerical_value(score_str) -> Optional[float]:
@@ -383,31 +384,16 @@ def evaluate_expectation(cohen_d: float, expected: Optional[str], tolerance: flo
     
     return None
 
-def pooled_standard_deviation(treatment: np.ndarray, control: np.ndarray) -> Optional[float]:
-    """
-    Compute pooled standard deviation for two independent samples.
-    """
-    n_t = len(treatment)
-    n_c = len(control)
-    if n_t <= 1 or n_c <= 1:
-        return None
-    
-    var_t = np.var(treatment, ddof=1)
-    var_c = np.var(control, ddof=1)
-    pooled_var = ((n_t - 1) * var_t + (n_c - 1) * var_c) / (n_t + n_c - 2)
-    return np.sqrt(pooled_var) if pooled_var > 0 else 0.0
-
-def cohen_d_standard_error(cohen_d: float, n_t: int, n_c: int) -> Optional[float]:
-    """
-    Approximate standard error for Cohen's d for independent samples.
-    """
-    if n_t <= 1 or n_c <= 1:
-        return None
-    return np.sqrt((n_t + n_c) / (n_t * n_c) + (cohen_d ** 2) / (2 * (n_t + n_c - 2)))
-
 def compute_statistics(df_diffs: pd.DataFrame, comparisons: List[Dict], metrics: List[str]) -> Dict[str, List[Dict]]:
     """
     Compute Cohen's d effect sizes for the specified comparisons and metrics.
+    
+    This version is for PAIRED SAMPLES.
+    1. It calculates d' (or d_z) = mean_diff / std_dev_diff.
+    2. It calculates the correlation (r) between pairs.
+    3. It applies the correction d = d' / sqrt(1 - r) to make it comparable 
+       to tables, as per the Wikipedia source.
+    4. It approximates the Standard Error and 95% CI for this corrected d.
     """
     results: Dict[str, List[Dict]] = {metric: [] for metric in metrics}
     
@@ -434,27 +420,55 @@ def compute_statistics(df_diffs: pd.DataFrame, comparisons: List[Dict], metrics:
             treatment_scores = valid_rows[treatment_col].astype(float).values
             control_scores = valid_rows[control_col].astype(float).values
             
-            if len(treatment_scores) == 0 or len(control_scores) == 0:
+            if len(treatment_scores) < 2:  # Need at least 2 pairs for std dev and correlation
                 continue
             
+            # --- START: Paired-Sample Calculation ---
+            
             diffs = treatment_scores - control_scores
+            n_pairs = int(len(diffs))
             mean_diff = float(np.mean(diffs))
-            pooled_sd = pooled_standard_deviation(treatment_scores, control_scores)
+            std_dev_diff = float(np.std(diffs, ddof=1))  # Standard deviation of the differences
             
-            if pooled_sd is None:
-                cohen_d = np.nan
-            elif pooled_sd == 0:
-                cohen_d = float(np.sign(mean_diff)) * np.inf if mean_diff != 0 else 0.0
-            else:
-                cohen_d = float(mean_diff / pooled_sd)
-            
-            se = cohen_d_standard_error(cohen_d, len(treatment_scores), len(control_scores)) if np.isfinite(cohen_d) else None
+            se = None
             ci_low = None
             ci_high = None
-            if se is not None:
-                ci_low = float(cohen_d - 1.96 * se)
-                ci_high = float(cohen_d + 1.96 * se)
+
+            if std_dev_diff == 0:
+                # No variance in differences, d' is infinite or 0
+                d_prime = float(np.sign(mean_diff)) * np.inf if mean_diff != 0 else 0.0
+                cohen_d = d_prime  # Cannot calculate correlation or correction
             
+            else:
+                # 1. Calculate d' (d_z)
+                # This is the paired d (mean_diff / std_dev_diff)
+                d_prime = mean_diff / std_dev_diff
+                
+                # 2. Calculate correlation r
+                # np.corrcoef returns a 2x2 matrix, we want the off-diagonal
+                correlation = float(np.corrcoef(treatment_scores, control_scores)[0, 1])
+                
+                # Avoid division by zero if r = 1
+                if correlation >= 0.99999:
+                    cohen_d = float(np.sign(d_prime)) * np.inf if d_prime != 0 else 0.0
+                else:
+                    # 3. Apply the correction
+                    correction_factor = np.sqrt(1 - correlation)
+                    cohen_d = float(d_prime / correction_factor)
+
+                # 4. Calculate Standard Error and CI for the corrected d
+                # We approximate SE for d_prime (d_z) and then scale it
+                if np.isfinite(d_prime) and np.isfinite(cohen_d):
+                    # Approx. SE for d_prime (d_z)
+                    se_d_prime = np.sqrt((1 / n_pairs) + (d_prime**2 / (2 * n_pairs)))
+                    
+                    # Scale the SE for the corrected d
+                    se = float(se_d_prime / correction_factor)
+                    ci_low = float(cohen_d - 1.96 * se)
+                    ci_high = float(cohen_d + 1.96 * se)
+            
+            # --- END: Paired-Sample Calculation ---
+
             expected_direction = comp.get('expected_direction')
             matches = evaluate_expectation(cohen_d, expected_direction) if np.isfinite(cohen_d) else None
             
@@ -464,7 +478,7 @@ def compute_statistics(df_diffs: pd.DataFrame, comparisons: List[Dict], metrics:
                 'control_label': comp['control_label'],
                 'expected_direction': expected_direction,
                 'matches_expectation': matches,
-                'n_pairs': int(len(valid_rows)),
+                'n_pairs': n_pairs,
                 'treatment_mean': float(np.mean(treatment_scores)),
                 'control_mean': float(np.mean(control_scores)),
                 'mean_difference': mean_diff,
@@ -530,13 +544,36 @@ def create_effect_size_plots(effect_results: Dict[str, List[Dict]], output_dir: 
             yerr[0].append(lower)
             yerr[1].append(upper)
             
-            matches = effect['matches_expectation']
-            if matches is None:
-                colors.append(COLOR_NEUTRAL)
-            elif matches:
-                colors.append(COLOR_MATCH)
+            # Determine if CI includes 0 (i.e., effect is within error bar)
+            ci_includes_zero = False
+            if effect['ci_low'] is not None and effect['ci_high'] is not None:
+                ci_includes_zero = effect['ci_low'] <= 0 <= effect['ci_high']
+            elif effect['standard_error'] is not None:
+                # Approximate: check if cohen_d is within 1.96 * SE of 0
+                margin = 1.96 * effect['standard_error']
+                ci_includes_zero = abs(cohen_d) <= margin
+            
+            # Color logic: white if CI includes 0, except special handling for Sham surgery vs Latest
+            comparison_label = effect['comparison'].lower()
+            is_sham_vs_latest = 'sham surgery' in comparison_label and 'latest' in comparison_label
+            
+            if ci_includes_zero:
+                # Inside error bar: white for all
+                colors.append(COLOR_WHITE)
             else:
-                colors.append(COLOR_MISMATCH)
+                # Outside error bar
+                if is_sham_vs_latest:
+                    # Special case: red for Sham surgery vs Latest when outside error bar
+                    colors.append(COLOR_MISMATCH)
+                else:
+                    # Use existing logic based on expectation matching
+                    matches = effect['matches_expectation']
+                    if matches is None:
+                        colors.append(COLOR_NEUTRAL)
+                    elif matches:
+                        colors.append(COLOR_MATCH)
+                    else:
+                        colors.append(COLOR_MISMATCH)
         
         if not cohen_ds:
             ax.set_axis_off()
@@ -579,11 +616,12 @@ def create_effect_size_plots(effect_results: Dict[str, List[Dict]], output_dir: 
     
     # Custom legend
     legend_handles = [
+        plt.Rectangle((0, 0), 1, 1, color=COLOR_WHITE, ec='black', label='Effect within error bar'),
         plt.Rectangle((0, 0), 1, 1, color=COLOR_MATCH, ec='black', label='Matches expectation'),
         plt.Rectangle((0, 0), 1, 1, color=COLOR_MISMATCH, ec='black', label='Contradicts expectation'),
         plt.Rectangle((0, 0), 1, 1, color=COLOR_NEUTRAL, ec='black', label='No expectation')
     ]
-    fig.legend(handles=legend_handles, loc='lower center', ncol=3, fontsize=12)
+    fig.legend(handles=legend_handles, loc='lower center', ncol=4, fontsize=12)
     
     plt.tight_layout(rect=[0, 0.05, 1, 0.98])
     plot_path = output_dir / "cohens_d_summary.png"
