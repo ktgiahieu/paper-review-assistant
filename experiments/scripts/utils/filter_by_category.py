@@ -27,6 +27,12 @@ import argparse
 import shutil
 from pathlib import Path
 from tqdm import tqdm
+import numpy as np
+try:
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 
 def load_json_file(filepath):
@@ -37,6 +43,376 @@ def load_json_file(filepath):
     except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError) as e:
         print(f"Warning: Could not read or parse {filepath}: {e}")
         return None
+
+
+def prune_appendix_from_markdown(md_content: str) -> str:
+    """
+    Remove appendix sections from a markdown paper.
+    
+    This function finds the "# References" section and truncates everything
+    after the last reference entry (bibliography entry with citation marker).
+    
+    Args:
+        md_content: The full markdown content of the paper
+    
+    Returns:
+        The markdown content with everything after the last reference removed
+    """
+    lines = md_content.split('\n')
+    
+    # Find "# References" section
+    references_idx = None
+    for i, line in enumerate(lines):
+        # Match "# References" with optional reference anchor
+        if re.match(r'^#\s+References\s*(\[.*\])?', line, re.IGNORECASE):
+            references_idx = i
+            break
+    
+    # If we found References, find where the References section actually ends
+    # by looking for the end of bibliography entries (lines with citation markers)
+    if references_idx is not None:
+        # Pattern to match bibliography citation markers like (@author2024title) or (@Author2024Title)
+        citation_pattern = r'\(@[a-zA-Z0-9_]+\)'
+        
+        # Find the last line that contains a citation marker
+        # This indicates where the bibliography entries end
+        last_citation_idx = None
+        for i in range(references_idx + 1, len(lines)):
+            line = lines[i]
+            # Check if this line contains a citation marker
+            if re.search(citation_pattern, line):
+                last_citation_idx = i
+        
+        # If we found citations, truncate after the last one
+        if last_citation_idx is not None:
+            pruned_lines = lines[:last_citation_idx + 1]
+            result = '\n'.join(pruned_lines)
+            if not result.endswith('\n'):
+                result += '\n'
+            return result
+        else:
+            # References section found but no citations - just return up to References heading
+            pruned_lines = lines[:references_idx + 1]
+            result = '\n'.join(pruned_lines)
+            if not result.endswith('\n'):
+                result += '\n'
+            return result
+    
+    # If References not found, return original content unchanged
+    return md_content
+
+
+def prune_appendix_from_file(file_path: Path, prune_appendix: bool = True) -> bool:
+    """
+    Prune appendix from a markdown file in place.
+    
+    Args:
+        file_path: Path to the markdown file
+        prune_appendix: Whether to prune the appendix (if False, does nothing)
+    
+    Returns:
+        True if pruning was successful or not needed, False otherwise
+    """
+    if not prune_appendix:
+        return True
+    
+    if not file_path.exists() or not file_path.is_file():
+        return False
+    
+    if not file_path.suffix == '.md':
+        return False
+    
+    try:
+        # Read the file
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Prune the appendix
+        pruned_content = prune_appendix_from_markdown(content)
+        
+        # Only write if content actually changed
+        if pruned_content != content:
+            # Write back to file
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(pruned_content)
+            return True
+        else:
+            # No changes needed
+            return True
+    except Exception as e:
+        print(f"  Warning: Could not prune appendix from {file_path.name}: {e}")
+        return False
+
+
+def analyze_file_sizes(directory, pattern='paper.md', recursive=True):
+    """
+    Analyze file sizes (word/character counts) for markdown files in a directory.
+    
+    Args:
+        directory: Directory to search for files
+        pattern: Filename pattern to match (default: 'paper.md')
+        recursive: Whether to search recursively (default: True)
+    
+    Returns:
+        List of dictionaries with file info: {'path': str, 'chars': int, 'words': int, 'lines': int}
+    """
+    directory = Path(directory)
+    if not directory.exists():
+        return []
+    
+    file_stats = []
+    
+    # Find all matching files
+    if recursive:
+        files = list(directory.rglob(pattern))
+    else:
+        files = list(directory.glob(pattern))
+    
+    for file_path in files:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            char_count = len(content)
+            word_count = len(content.split())
+            line_count = len(content.splitlines())
+            
+            # Get relative path for cleaner output
+            try:
+                rel_path = str(file_path.relative_to(directory))
+            except ValueError:
+                rel_path = str(file_path)
+            
+            file_stats.append({
+                'path': rel_path,
+                'full_path': str(file_path),
+                'chars': char_count,
+                'words': word_count,
+                'lines': line_count
+            })
+        except Exception as e:
+            print(f"  Warning: Could not analyze {file_path}: {e}")
+    
+    return file_stats
+
+
+def plot_file_size_histogram(file_stats, metric='words', output_path=None, show_outliers=True):
+    """
+    Plot histogram of file sizes and identify outliers.
+    
+    Args:
+        file_stats: List of dictionaries with file stats (from analyze_file_sizes)
+        metric: Metric to plot ('words', 'chars', or 'lines', default: 'words')
+        output_path: Path to save the plot (default: None, displays instead)
+        show_outliers: Whether to print outlier information (default: True)
+    
+    Returns:
+        List of outlier file paths
+    """
+    if not file_stats:
+        print("  No files found to analyze")
+        return []
+    
+    # Extract the metric values
+    values = [stat[metric] for stat in file_stats]
+    
+    if not values:
+        print(f"  No {metric} data found")
+        return []
+    
+    # Calculate statistics
+    mean_val = np.mean(values)
+    median_val = np.median(values)
+    std_val = np.std(values)
+    q1 = np.percentile(values, 25)
+    q3 = np.percentile(values, 75)
+    iqr = q3 - q1
+    
+    # Identify outliers using IQR method (values beyond 1.5 * IQR from Q1/Q3)
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    
+    outliers = [stat for stat in file_stats if stat[metric] > upper_bound]
+    
+    # Print statistics
+    print(f"\n  File size statistics ({metric}):")
+    print(f"    Total files: {len(file_stats)}")
+    print(f"    Mean: {mean_val:.1f}")
+    print(f"    Median: {median_val:.1f}")
+    print(f"    Std Dev: {std_val:.1f}")
+    print(f"    Q1: {q1:.1f}, Q3: {q3:.1f}, IQR: {iqr:.1f}")
+    print(f"    Outlier threshold: {upper_bound:.1f} (upper bound)")
+    print(f"    Found {len(outliers)} outliers")
+    
+    if show_outliers and outliers:
+        print(f"\n  Outlier files ({metric} > {upper_bound:.1f}):")
+        # Sort by metric value (descending)
+        outliers_sorted = sorted(outliers, key=lambda x: x[metric], reverse=True)
+        for i, outlier in enumerate(outliers_sorted[:20], 1):  # Show top 20
+            print(f"    {i}. {outlier['path']}: {outlier[metric]:,} {metric}")
+        if len(outliers) > 20:
+            print(f"    ... and {len(outliers) - 20} more outliers")
+    
+    # Plot histogram if matplotlib is available
+    if HAS_MATPLOTLIB:
+        plt.figure(figsize=(10, 6))
+        plt.hist(values, bins=50, edgecolor='black', alpha=0.7)
+        plt.axvline(mean_val, color='red', linestyle='--', label=f'Mean: {mean_val:.1f}')
+        plt.axvline(median_val, color='green', linestyle='--', label=f'Median: {median_val:.1f}')
+        plt.axvline(upper_bound, color='orange', linestyle='--', label=f'Outlier threshold: {upper_bound:.1f}')
+        
+        # Mark outliers
+        outlier_values = [stat[metric] for stat in outliers]
+        if outlier_values:
+            plt.scatter(outlier_values, [0] * len(outlier_values), 
+                       color='red', marker='x', s=100, zorder=5, label=f'Outliers ({len(outliers)})')
+        
+        plt.xlabel(f'File size ({metric})')
+        plt.ylabel('Number of files')
+        plt.title(f'Distribution of file sizes ({metric})')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        
+        if output_path:
+            plt.savefig(output_path, dpi=150, bbox_inches='tight')
+            print(f"  Histogram saved to: {output_path}")
+        else:
+            plt.show()
+        
+        plt.close()
+    else:
+        print("  Matplotlib not available, skipping histogram plot")
+    
+    return [out['full_path'] for out in outliers]
+
+
+def should_filter_limitation_only_csv(csv_path, flaw_id=None):
+    """
+    Check if a modifications_summary.csv should be filtered out.
+    
+    Filters out CSVs where:
+    - num_modifications == 1
+    - The single modification's target_heading contains "limitation" (case-insensitive)
+    
+    Args:
+        csv_path: Path to the modifications_summary.csv file
+        flaw_id: Optional flaw_id to filter to (if None, checks all flaws in CSV)
+    
+    Returns:
+        True if the CSV should be filtered out, False otherwise
+    """
+    if not csv_path.exists():
+        return False
+    
+    try:
+        modifications_df = pd.read_csv(csv_path)
+        
+        # Filter to specific flaw_id if provided
+        if flaw_id is not None:
+            modifications_df = modifications_df[modifications_df['flaw_id'] == flaw_id]
+            if modifications_df.empty:
+                return False
+        
+        # Check each row
+        for _, row in modifications_df.iterrows():
+            num_modifications = row.get('num_modifications', 0)
+            
+            # Only filter if there's exactly 1 modification
+            if num_modifications != 1:
+                continue
+            
+            # Parse the llm_generated_modifications JSON
+            try:
+                modifications_json = row.get('llm_generated_modifications', '[]')
+                if pd.isna(modifications_json) or modifications_json == '':
+                    continue
+                
+                modifications = json.loads(modifications_json)
+                
+                # Check if there's exactly one modification and it targets "limitation"
+                if len(modifications) == 1:
+                    target_heading = modifications[0].get('target_heading', '')
+                    if 'limitation' in str(target_heading).lower():
+                        return True
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                # If we can't parse, don't filter it out (safer to include)
+                continue
+        
+        return False
+    except Exception as e:
+        # If we can't read the CSV, don't filter it out (safer to include)
+        print(f"  Warning: Could not check CSV {csv_path.name}: {e}")
+        return False
+
+
+def filter_limitation_only_entries(filtered_df, flawed_papers_source_dir):
+    """
+    Filter out entries from filtered_df where the corresponding CSV has only 1 modification
+    targeting a "limitation" heading.
+    
+    Args:
+        filtered_df: DataFrame with columns 'openreview_id' and 'flaw_id'
+        flawed_papers_source_dir: Source directory containing flawed papers with modifications_summary.csv files
+    
+    Returns:
+        Filtered DataFrame with limitation-only entries removed
+    """
+    flawed_papers_source_dir = Path(flawed_papers_source_dir)
+    
+    if not flawed_papers_source_dir.exists():
+        print("  Warning: Flawed papers source directory not found, skipping limitation-only filter")
+        return filtered_df
+    
+    print(f"  Filtering out limitation-only modifications...")
+    original_count = len(filtered_df)
+    
+    # Group by openreview_id to read each CSV only once
+    filtered_out_count = 0
+    rows_to_keep = []
+    
+    for openreview_id, group_df in filtered_df.groupby('openreview_id'):
+        # Find the source directory for this paper
+        source_dirs = [d for d in flawed_papers_source_dir.iterdir() 
+                      if d.is_dir() and d.name.startswith(openreview_id)]
+        
+        if not source_dirs:
+            # If we can't find the directory, keep all rows for this paper
+            rows_to_keep.extend(group_df.index.tolist())
+            continue
+        
+        source_dir = source_dirs[0]
+        
+        # Look for modifications_summary.csv
+        csv_filename = f"{openreview_id}_modifications_summary.csv"
+        csv_path = source_dir / csv_filename
+        
+        if not csv_path.exists():
+            # Try alternative naming patterns
+            csv_files = list(source_dir.glob("*_modifications_summary.csv"))
+            if csv_files:
+                csv_path = csv_files[0]
+            else:
+                # If CSV not found, keep all rows for this paper
+                rows_to_keep.extend(group_df.index.tolist())
+                continue
+        
+        # Check each flaw_id in this group
+        for idx, row in group_df.iterrows():
+            flaw_id = row['flaw_id']
+            
+            # Check if this CSV should be filtered out
+            if should_filter_limitation_only_csv(csv_path, flaw_id=flaw_id):
+                filtered_out_count += 1
+            else:
+                rows_to_keep.append(idx)
+    
+    # Create filtered DataFrame
+    filtered_df = filtered_df.loc[rows_to_keep].copy()
+    
+    print(f"  Filtered out {filtered_out_count} limitation-only entries")
+    print(f"  Remaining: {len(filtered_df)} entries (from {original_count} original)")
+    
+    return filtered_df
 
 
 def extract_single_categories(category_str):
@@ -158,7 +534,8 @@ def copy_papers_for_category(
     output_base_dir,
     category_id,
     venue_name='NeurIPS2024',
-    subdirectory='latest'
+    subdirectory='latest',
+    prune_appendix=False
 ):
     """
     Copy paper directories for the given openreview_ids to the output structure.
@@ -170,6 +547,7 @@ def copy_papers_for_category(
         category_id: Category ID (e.g., '2a')
         venue_name: Venue name (default: 'NeurIPS2024')
         subdirectory: Subdirectory name (default: 'latest', can be 'planted_error')
+        prune_appendix: If True, prune appendix sections from paper.md files (default: False)
     
     Returns:
         Tuple of (copied_count, not_found_ids)
@@ -214,6 +592,19 @@ def copy_papers_for_category(
                 shutil.rmtree(dest_dir)
             # Copy the entire directory
             shutil.copytree(source_dir, dest_dir)
+            
+            # Prune appendix if requested
+            if prune_appendix:
+                # Look for paper.md in common locations
+                paper_md_paths = [
+                    dest_dir / 'structured_paper_output' / 'paper.md',
+                    dest_dir / 'paper.md'
+                ]
+                for paper_md_path in paper_md_paths:
+                    if paper_md_path.exists():
+                        prune_appendix_from_file(paper_md_path, prune_appendix=True)
+                        break
+            
             copied_count += 1
         except Exception as e:
             print(f"\n  Error copying {source_dir.name}: {e}")
@@ -232,7 +623,8 @@ def copy_flawed_papers_for_category(
     output_base_dir,
     category_id,
     venue_name='NeurIPS2024',
-    copy_csv_only=False
+    copy_csv_only=False,
+    prune_appendix=False
 ):
     """
     Copy only the flawed paper versions that match the category.
@@ -249,6 +641,7 @@ def copy_flawed_papers_for_category(
         category_id: Category ID (e.g., '2a')
         venue_name: Venue name (default: 'NeurIPS2024')
         copy_csv_only: If True, only copy CSV files, not .md files (default: False)
+        prune_appendix: If True, prune appendix sections from .md files (default: False)
     
     Returns:
         Tuple of (copied_count, not_found_ids, total_flaws_copied)
@@ -355,7 +748,11 @@ def copy_flawed_papers_for_category(
                         flaw_id = str(flaw_id)
                         md_file = flawed_papers_dir / f"{flaw_id}.md"
                         if md_file.exists():
-                            shutil.copy2(md_file, dest_flawed_papers_dir / f"{flaw_id}.md")
+                            dest_md_file = dest_flawed_papers_dir / f"{flaw_id}.md"
+                            shutil.copy2(md_file, dest_md_file)
+                            # Prune appendix if requested
+                            if prune_appendix:
+                                prune_appendix_from_file(dest_md_file, prune_appendix=True)
                             total_flaws_copied += 1
                         else:
                             print(f"\n  Warning: .md file not found for flaw {flaw_id} in {openreview_id}")
@@ -365,7 +762,11 @@ def copy_flawed_papers_for_category(
                         flaw_id = str(flaw_id)
                         md_file = source_dir / f"{flaw_id}.md"
                         if md_file.exists():
-                            shutil.copy2(md_file, dest_dir / f"{flaw_id}.md")
+                            dest_md_file = dest_dir / f"{flaw_id}.md"
+                            shutil.copy2(md_file, dest_md_file)
+                            # Prune appendix if requested
+                            if prune_appendix:
+                                prune_appendix_from_file(dest_md_file, prune_appendix=True)
                             total_flaws_copied += 1
             else:
                 # Just count the flaws in the CSV
@@ -453,7 +854,9 @@ def filter_and_aggregate(
     flawed_papers_source_dir=None,
     output_base_dir=None,
     venue_name='NeurIPS2024',
-    copy_csv_only=False
+    copy_csv_only=False,
+    prune_appendix=False,
+    filter_limitation_only=False
 ):
     """
     Main function to filter flaws by category and optionally aggregate additional data.
@@ -477,6 +880,7 @@ def filter_and_aggregate(
         output_base_dir: Base output directory for papers (default: same as CSV output directory)
         venue_name: Venue name for paper output structure (default: 'NeurIPS2024')
         copy_csv_only: If True, only copy CSV files, not .md files (default: False)
+        prune_appendix: If True, prune appendix sections from paper.md files (default: False)
     """
     # --- Step 1: Load and filter categorized flaws ---
     print(f"Step 1: Loading and filtering categorized flaws...")
@@ -549,17 +953,22 @@ def filter_and_aggregate(
     else:
         filtered_df['llm_review'] = None
     
-    # --- Step 5: Sample if requested ---
+    # --- Step 5: Filter out limitation-only modifications (optional) ---
+    if filter_limitation_only and flawed_papers_source_dir:
+        print(f"\nStep 5: Filtering out limitation-only modifications...")
+        filtered_df = filter_limitation_only_entries(filtered_df, flawed_papers_source_dir)
+    
+    # --- Step 6: Sample if requested ---
     if n_samples is not None and n_samples > 0:
-        print(f"\nStep 5: Sampling {n_samples} flaws...")
+        print(f"\nStep 6: Sampling {n_samples} flaws...")
         if len(filtered_df) <= n_samples:
             print(f"  Only {len(filtered_df)} flaws available, using all of them")
         else:
             filtered_df = filtered_df.sample(n=min(n_samples, len(filtered_df)), random_state=random_seed)
             print(f"  Sampled {len(filtered_df)} flaws")
     
-    # --- Step 6: Reorder columns and save ---
-    print(f"\nStep 6: Saving filtered data...")
+    # --- Step 7: Reorder columns and save ---
+    print(f"\nStep 7: Saving filtered data...")
     final_columns = [
         'openreview_id', 'flaw_id', 'category_ids', 'flaw_description',
         'llm_review', 'is_flaw_mentioned', 'mention_reasoning'
@@ -578,7 +987,7 @@ def filter_and_aggregate(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     final_df.to_csv(output_path, index=False)
     
-    # --- Step 7: Copy papers if requested ---
+    # --- Step 8: Copy papers if requested ---
     copied_count = 0
     flawed_copied_count = 0
     total_flaws_copied = 0
@@ -596,13 +1005,16 @@ def filter_and_aggregate(
     
     if copy_papers and papers_source_dir:
         print(f"\nStep 7: Copying corresponding papers (latest versions)...")
+        if prune_appendix:
+            print(f"  Note: Pruning appendix sections from paper.md files")
         copied_count, not_found_ids = copy_papers_for_category(
             openreview_ids=unique_openreview_ids,
             papers_source_dir=papers_source_dir,
             output_base_dir=output_base_dir,
             category_id=category_id,
             venue_name=venue_name,
-            subdirectory='latest'
+            subdirectory='latest',
+            prune_appendix=prune_appendix
         )
         
         if not_found_ids:
@@ -614,13 +1026,16 @@ def filter_and_aggregate(
             print(f"\nStep 8: Copying flawed paper CSV files only (filtered by category)...")
         else:
             print(f"\nStep 8: Copying flawed paper versions (filtered by category)...")
+            if prune_appendix:
+                print(f"  Note: Pruning appendix sections from .md files")
         flawed_copied_count, flawed_not_found_ids, total_flaws_copied = copy_flawed_papers_for_category(
             filtered_df=final_df,
             flawed_papers_source_dir=flawed_papers_source_dir,
             output_base_dir=output_base_dir,
             category_id=category_id,
             venue_name=venue_name,
-            copy_csv_only=copy_csv_only
+            copy_csv_only=copy_csv_only,
+            prune_appendix=prune_appendix
         )
         
         if flawed_not_found_ids:
@@ -744,6 +1159,34 @@ def main():
         default='NeurIPS2024',
         help='Venue name for paper output structure (default: "NeurIPS2024")'
     )
+    parser.add_argument(
+        '--prune_appendix',
+        action='store_true',
+        help='Prune appendix sections from paper.md files when copying papers. Removes everything after "# References" or common appendix markers like "# Hyperparameter setting", "# Details of evaluation metrics", etc.'
+    )
+    parser.add_argument(
+        '--filter_limitation_only',
+        action='store_true',
+        help='Before sampling, filter out entries where the modifications_summary.csv has only 1 modification targeting a "limitation" heading. This helps exclude cases where authors only made minor adjustments by mentioning the flaw in the Limitations section. Requires --flawed_papers_source_dir to be set.'
+    )
+    parser.add_argument(
+        '--analyze_file_sizes',
+        action='store_true',
+        help='After copying/pruning papers, analyze file sizes (words/characters) and plot histogram to identify outliers that may have unpruned appendices'
+    )
+    parser.add_argument(
+        '--size_metric',
+        type=str,
+        default='words',
+        choices=['words', 'chars', 'lines'],
+        help='Metric to use for file size analysis (default: "words")'
+    )
+    parser.add_argument(
+        '--size_plot_output',
+        type=str,
+        default=None,
+        help='Path to save the file size histogram plot (default: None, displays instead)'
+    )
     
     args = parser.parse_args()
     
@@ -803,8 +1246,57 @@ def main():
                 flawed_papers_source_dir=args.flawed_papers_source_dir,
                 output_base_dir=args.output_base_dir,
                 venue_name=args.venue_name,
-                copy_csv_only=args.copy_csv_only
+                copy_csv_only=args.copy_csv_only,
+                prune_appendix=args.prune_appendix,
+                filter_limitation_only=args.filter_limitation_only
             )
+        
+        # Analyze file sizes if requested
+        if args.analyze_file_sizes and args.output_base_dir:
+            output_base = Path(args.output_base_dir)
+            venue_dir = output_base / args.venue_name
+            
+            if venue_dir.exists():
+                print(f"\n{'='*60}")
+                print("Analyzing file sizes...")
+                print(f"{'='*60}")
+                
+                # Analyze each category's directories
+                for category_id in all_categories:
+                    category_dir = venue_dir / category_id
+                    if category_dir.exists():
+                        print(f"\nAnalyzing category {category_id}...")
+                        
+                        # Analyze both latest and planted_error directories
+                        for subdir in ['latest', 'planted_error']:
+                            subdir_path = category_dir / subdir
+                            if subdir_path.exists():
+                                print(f"  Analyzing {subdir} directory...")
+                                file_stats = analyze_file_sizes(subdir_path, pattern='paper.md', recursive=True)
+                                
+                                if file_stats:
+                                    # Determine plot output path
+                                    plot_path = None
+                                    if args.size_plot_output:
+                                        plot_dir = Path(args.size_plot_output).parent
+                                        plot_dir.mkdir(parents=True, exist_ok=True)
+                                        plot_name = Path(args.size_plot_output).stem
+                                        plot_ext = Path(args.size_plot_output).suffix or '.png'
+                                        plot_path = plot_dir / f"{plot_name}_{category_id}_{subdir}{plot_ext}"
+                                    else:
+                                        # Auto-generate plot path in output directory
+                                        plot_dir = category_dir
+                                        plot_dir.mkdir(parents=True, exist_ok=True)
+                                        plot_path = plot_dir / f"file_size_histogram_{args.size_metric}_{subdir}.png"
+                                    
+                                    outliers = plot_file_size_histogram(
+                                        file_stats,
+                                        metric=args.size_metric,
+                                        output_path=plot_path,
+                                        show_outliers=True
+                                    )
+                                else:
+                                    print(f"    No paper.md files found in {subdir_path}")
         
         print(f"\n{'='*60}")
         print(f"Completed processing all {len(all_categories)} categories!")
@@ -836,8 +1328,51 @@ def main():
             flawed_papers_source_dir=args.flawed_papers_source_dir,
             output_base_dir=args.output_base_dir,
             venue_name=args.venue_name,
-            copy_csv_only=args.copy_csv_only
+            copy_csv_only=args.copy_csv_only,
+            prune_appendix=args.prune_appendix,
+            filter_limitation_only=args.filter_limitation_only
         )
+        
+        # Analyze file sizes if requested
+        if args.analyze_file_sizes and args.output_base_dir:
+            output_base = Path(args.output_base_dir)
+            venue_dir = output_base / args.venue_name / args.category_id
+            
+            if venue_dir.exists():
+                print(f"\n{'='*60}")
+                print("Analyzing file sizes...")
+                print(f"{'='*60}")
+                
+                # Analyze both latest and planted_error directories
+                for subdir in ['latest', 'planted_error']:
+                    subdir_path = venue_dir / subdir
+                    if subdir_path.exists():
+                        print(f"\nAnalyzing {subdir} directory...")
+                        file_stats = analyze_file_sizes(subdir_path, pattern='paper.md', recursive=True)
+                        
+                        if file_stats:
+                            # Determine plot output path
+                            plot_path = None
+                            if args.size_plot_output:
+                                plot_dir = Path(args.size_plot_output).parent
+                                plot_dir.mkdir(parents=True, exist_ok=True)
+                                plot_name = Path(args.size_plot_output).stem
+                                plot_ext = Path(args.size_plot_output).suffix or '.png'
+                                plot_path = plot_dir / f"{plot_name}_{subdir}{plot_ext}"
+                            elif args.output_base_dir:
+                                # Auto-generate plot path in output directory
+                                plot_dir = output_base / args.venue_name / args.category_id
+                                plot_dir.mkdir(parents=True, exist_ok=True)
+                                plot_path = plot_dir / f"file_size_histogram_{args.size_metric}_{subdir}.png"
+                            
+                            outliers = plot_file_size_histogram(
+                                file_stats,
+                                metric=args.size_metric,
+                                output_path=plot_path,
+                                show_outliers=True
+                            )
+                        else:
+                            print(f"  No paper.md files found in {subdir_path}")
 
 
 if __name__ == '__main__':
